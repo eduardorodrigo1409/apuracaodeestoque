@@ -452,7 +452,8 @@
                   <th class="py-3 px-3">Produto</th>
                   <th class="py-3 px-3">Grupo</th>
                   <th class="py-3 px-3 text-right">Faturamento (R$)</th>
-                  <th class="py-3 px-3 text-right">Preço/Margem KG</th>
+                  <th class="py-3 px-3 text-right">Qtd Vendida (Peso/Un)</th>
+                  <th class="py-3 px-3 text-right">Preço Médio</th>
                   <th class="py-3 px-3 text-right">Qtd Disponível</th>
                   <th class="py-3 px-3 text-right">Cobertura (Dias)</th>
                   <th class="py-3 px-3 text-center">Classe ABC</th>
@@ -522,6 +523,33 @@
 
     const formatBRL = (val) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val || 0);
     const formatKG = (val) => new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val || 0) + ' kg';
+    const formatNum = (val) => new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(val || 0);
+
+    function formatQtdVendida(p) {
+      const peso = p['Peso (kg)'] || 0;
+      const qtd = p.Quantidade || 0;
+      if (peso !== 0) {
+        return formatKG(peso);
+      }
+      if (qtd !== 0) {
+        return `${formatNum(qtd)} un`;
+      }
+      return '0';
+    }
+
+    function formatPrecoMedio(p) {
+      const fat = p.Faturamento || 0;
+      const peso = p['Peso (kg)'] || 0;
+      const qtd = p.Quantidade || 0;
+      if (fat === 0) return '-';
+      if (peso !== 0) {
+        return `${formatBRL(fat / peso)}/kg`;
+      }
+      if (qtd !== 0) {
+        return `${formatBRL(fat / qtd)}/un`;
+      }
+      return '-';
+    }
 
     function getEasterDate(year) {
       const a = year % 19;
@@ -1071,7 +1099,8 @@
           <td class="py-3 px-3 font-semibold text-white">${p.Produto}</td>
           <td class="py-3 px-3"><span class="bg-indigo-500/10 text-indigo-300 px-2 py-0.5 rounded text-[10px]">${p.Grupo}</span></td>
           <td class="py-3 px-3 text-right font-bold ${p.Faturamento < 0 ? 'text-rose-400' : 'text-emerald-400'}">${formatBRL(p.Faturamento)}</td>
-          <td class="py-3 px-3 text-right font-mono text-cyan-400">${p.PrecoKg > 0 ? formatBRL(p.PrecoKg) + '/kg' : '-'}</td>
+          <td class="py-3 px-3 text-right font-mono text-cyan-400">${formatQtdVendida(p)}</td>
+          <td class="py-3 px-3 text-right font-mono text-amber-300">${formatPrecoMedio(p)}</td>
           <td class="py-3 px-3 text-right font-mono">${p.Estoque > 0 ? p.Estoque.toLocaleString('pt-BR') : '0'}</td>
           <td class="py-3 px-3 text-right font-bold ${p.DiasCobertura > 90 ? 'text-rose-400' : 'text-emerald-400'}">${p.DiasCobertura === 999 ? 'Sem Giro' : p.DiasCobertura + ' dias'}</td>
           <td class="py-3 px-3 text-center"><span class="bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded text-[10px] font-bold">${p.CurvaABC || 'Curva C'}</span></td>
@@ -1201,8 +1230,10 @@
         'Produto': item.Produto,
         'Grupo': item.Grupo,
         'Faturamento (R$)': Number((item.Faturamento || 0).toFixed(2)),
+        'Qtd Vendida (Peso/Un)': formatQtdVendida(item),
+        'Preço Médio': formatPrecoMedio(item),
         'Peso (kg)': Number((item['Peso (kg)'] || 0).toFixed(2)),
-        'Preço Médio/kg (R$)': Number((item.PrecoKg || 0).toFixed(2)),
+        'Qtd Vendida (Un)': Number((item.Quantidade || 0).toFixed(2)),
         'Qtd Disponível': Number((item.Estoque || 0).toFixed(2)),
         'Custo (R$)': Number((item.CustoPosicao || 0).toFixed(4)),
         'Valor Disponível (R$)': Number((item.ValorEstoque || 0).toFixed(2)),
@@ -1213,8 +1244,9 @@
       const ws = XLSX.utils.json_to_sheet(rows);
       ws['!cols'] = [
         { wch: 10 }, { wch: 12 }, { wch: 45 }, { wch: 24 },
-        { wch: 18 }, { wch: 15 }, { wch: 20 }, { wch: 16 },
-        { wch: 16 }, { wch: 22 }, { wch: 18 }, { wch: 14 }
+        { wch: 18 }, { wch: 22 }, { wch: 18 }, { wch: 15 },
+        { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 22 },
+        { wch: 18 }, { wch: 14 }
       ];
 
       const wb = XLSX.utils.book_new();
