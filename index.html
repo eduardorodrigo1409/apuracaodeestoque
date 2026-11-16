@@ -510,7 +510,6 @@
   </div>
 
   <script>
-    // URL do repositório/página do Simulador de Ofertas (ajuste se o nome do repositório for diferente)
     const URL_SIMULADOR_OFERTAS = '../Simulador-de-Ofertas/';
 
     let rawProducts = [];
@@ -536,12 +535,8 @@
     function formatQtdVendida(p) {
       const peso = p['Peso (kg)'] || 0;
       const qtd = p.Quantidade || 0;
-      if (peso !== 0) {
-        return formatKG(peso);
-      }
-      if (qtd !== 0) {
-        return `${formatNum(qtd)} un`;
-      }
+      if (peso !== 0) return formatKG(peso);
+      if (qtd !== 0) return `${formatNum(qtd)} un`;
       return '0';
     }
 
@@ -550,12 +545,8 @@
       const peso = p['Peso (kg)'] || 0;
       const qtd = p.Quantidade || 0;
       if (fat === 0) return '-';
-      if (peso !== 0) {
-        return `${formatBRL(fat / peso)}/kg`;
-      }
-      if (qtd !== 0) {
-        return `${formatBRL(fat / qtd)}/un`;
-      }
+      if (peso !== 0) return `${formatBRL(fat / peso)}/kg`;
+      if (qtd !== 0) return `${formatBRL(fat / qtd)}/un`;
       return '-';
     }
 
@@ -592,38 +583,24 @@
 
     function getFeriadosBrasil(year) {
       const feriados = new Set([
-        `${year}-01-01`,
-        `${year}-04-21`,
-        `${year}-05-01`,
-        `${year}-09-07`,
-        `${year}-10-12`,
-        `${year}-11-02`,
-        `${year}-11-15`,
-        `${year}-11-20`,
-        `${year}-12-25`
+        `${year}-01-01`, `${year}-04-21`, `${year}-05-01`, `${year}-09-07`,
+        `${year}-10-12`, `${year}-11-02`, `${year}-11-15`, `${year}-11-20`, `${year}-12-25`
       ]);
-
       const pascoa = getEasterDate(year);
       feriados.add(formatDateISO(addDays(pascoa, -48)));
       feriados.add(formatDateISO(addDays(pascoa, -47)));
       feriados.add(formatDateISO(addDays(pascoa, -2)));
       feriados.add(formatDateISO(addDays(pascoa, 60)));
-
       return feriados;
     }
 
     function calcularDiasUteisEntreDatas(dataIniStr, dataFimStr) {
       if (!dataIniStr || !dataFimStr) return 11;
-
       const [y1, m1, d1] = dataIniStr.split('-').map(Number);
       const [y2, m2, d2] = dataFimStr.split('-').map(Number);
-
       const start = new Date(y1, m1 - 1, d1);
       const end = new Date(y2, m2 - 1, d2);
-
-      if (isNaN(start.getTime()) || isNaN(end.getTime()) || start > end) {
-        return 0;
-      }
+      if (isNaN(start.getTime()) || isNaN(end.getTime()) || start > end) return 0;
 
       const feriadosCache = {};
       let totalDias = 0;
@@ -631,31 +608,21 @@
 
       while (curr <= end) {
         const year = curr.getFullYear();
-        if (!feriadosCache[year]) {
-          feriadosCache[year] = getFeriadosBrasil(year);
-        }
-
+        if (!feriadosCache[year]) feriadosCache[year] = getFeriadosBrasil(year);
         const iso = formatDateISO(curr);
         const dayOfWeek = curr.getDay();
 
         if (dayOfWeek !== 0 && !feriadosCache[year].has(iso)) {
-          if (dayOfWeek === 6) {
-            totalDias += 0.5;
-          } else {
-            totalDias += 1.0;
-          }
+          totalDias += dayOfWeek === 6 ? 0.5 : 1.0;
         }
-
         curr.setDate(curr.getDate() + 1);
       }
-
       return totalDias;
     }
 
     function recalcularPeriodoDatas() {
       const ini = document.getElementById('dataInicialInput').value;
       const fim = document.getElementById('dataFinalInput').value;
-
       const calculado = calcularDiasUteisEntreDatas(ini, fim);
       if (calculado <= 0) {
         document.getElementById('badgeDiasUteis').innerText = 'Período inválido';
@@ -674,6 +641,7 @@
           const vendaDiariaQtd = (p.Quantidade || 0) / diasUteisPeriodo;
           p.DiasCobertura = vendaDiariaQtd > 0 ? Math.round((p.Estoque || 0) / vendaDiariaQtd) : (p.Estoque > 0 ? 999 : 0);
         });
+        salvarBaseParaSimulador(rawProducts);
         updateDashboardData();
       }
     }
@@ -685,16 +653,8 @@
       let str = String(rawVal).trim();
       if (!str) return 0;
 
-      let isNegative = false;
-      if (str.startsWith('(') && str.endsWith(')')) {
-        isNegative = true;
-        str = str.slice(1, -1);
-      }
-      if (str.includes('-')) {
-        isNegative = true;
-      }
-
-      str = str.replace(/[R$\s-]/g, '');
+      let isNegative = (str.startsWith('(') && str.endsWith(')')) || str.includes('-');
+      str = str.replace(/[R$\s()-]/g, '');
 
       if (str.includes(',') && str.includes('.')) {
         str = str.replace(/\./g, '').replace(',', '.');
@@ -726,11 +686,7 @@
     }
 
     function normalizeText(str) {
-      return String(str || '')
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .toUpperCase()
-        .trim();
+      return String(str || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().trim();
     }
 
     async function handleFileUpload(event) {
@@ -738,7 +694,6 @@
       if (!files || files.length === 0) return;
 
       recalcularPeriodoDatas();
-
       let itemMap = {};
 
       for (let i = 0; i < files.length; i++) {
@@ -771,10 +726,7 @@
               if (val.includes('faturam') || val.includes('venda') || val.includes('receit') || val.includes('total r$')) colFat = c;
               if (val.includes('quantidade') || val.includes('qtd vend')) colQtd = c;
               if (val.includes('peso')) colPeso = c;
-              
-              if (val === 'local' && !val.includes('cód') && !val.includes('cod')) {
-                colLocal = c;
-              }
+              if (val === 'local' && !val.includes('cód') && !val.includes('cod')) colLocal = c;
 
               if (val === 'disponível' || val === 'disponivel') {
                 colEstoque = c;
@@ -782,10 +734,7 @@
                 colEstoque = c;
               }
 
-              if (val.includes('custo') && !val.includes('data')) {
-                colCusto = c;
-              }
-
+              if (val.includes('custo') && !val.includes('data')) colCusto = c;
               if (val.includes('valor') && val.includes('estoque')) colValorEstoque = c;
             });
 
@@ -796,7 +745,6 @@
           }
 
           if (headerRowIdx === -1) headerRowIdx = 0;
-
           if (colLocal !== -1 && colCusto === -1 && rawRows[headerRowIdx] && rawRows[headerRowIdx].length > 12) {
             colCusto = 12;
           }
@@ -808,14 +756,11 @@
 
             const nome = String(row[colProd] || '').trim();
             const lowerNome = nome.toLowerCase();
-
             if (!nome || lowerNome === 'produto' || lowerNome === 'descrição' || lowerNome.includes('total geral') || lowerNome.includes('subtotal') || lowerNome === 'total') return;
 
             if (colLocal !== -1) {
               const localNorm = normalizeText(row[colLocal]);
-              if (localNorm !== 'GALPAO' && localNorm !== 'ACESSORIOS') {
-                return;
-              }
+              if (localNorm !== 'GALPAO' && localNorm !== 'ACESSORIOS') return;
             }
 
             const cod = parseInt(row[colCod]) || 0;
@@ -850,9 +795,7 @@
               itemMap[key].Quantidade += qtd;
               itemMap[key]['Peso (kg)'] += peso;
 
-              if (colEstoque !== -1) {
-                itemMap[key].Estoque += est;
-              }
+              if (colEstoque !== -1) itemMap[key].Estoque += est;
               if (colCusto !== -1 && custo > 0) {
                 if (estAnterior + est > 0 && custoAnterior > 0) {
                   itemMap[key].CustoPosicao = ((estAnterior * custoAnterior) + (est * custo)) / (estAnterior + est);
@@ -860,9 +803,7 @@
                   itemMap[key].CustoPosicao = custo;
                 }
               }
-              if (colValorEstoque !== -1) {
-                itemMap[key].ValorEstoque += valEst;
-              }
+              if (colValorEstoque !== -1) itemMap[key].ValorEstoque += valEst;
             }
           });
         }
@@ -911,7 +852,6 @@
       activeFilteredProducts = [...rawProducts];
       currentDisplayedProducts = [...rawProducts];
 
-      // Salva automaticamente os itens com saldo disponível no localStorage para o Simulador de Ofertas
       salvarBaseParaSimulador(rawProducts);
 
       populateCategoryDropdown();
@@ -925,10 +865,9 @@
         .filter(item => (item.Estoque || 0) > 0)
         .map(item => {
           const qtd = item.Estoque || 0;
-          const valTot = item.ValorEstoque > 0 ? item.ValorEstoque : (qtd * (item.CustoPosicao || 0));
           const custoUnit = (item.CustoPosicao && item.CustoPosicao > 0)
             ? item.CustoPosicao
-            : (qtd > 0 ? valTot / qtd : 0);
+            : (qtd > 0 && item.ValorEstoque > 0 ? item.ValorEstoque / qtd : 0);
 
           return {
             codigo: item.Código || '',
@@ -936,7 +875,7 @@
             grupo: item.Grupo || 'GERAL',
             qtd: qtd,
             custo: custoUnit,
-            custoTotalExato: valTot
+            diasCobertura: item.DiasCobertura !== undefined ? item.DiasCobertura : 999
           };
         });
 
@@ -965,22 +904,16 @@
 
     function generateGroupsFromProducts(products, totalGlobal) {
       const groupsMap = {};
-
       products.forEach(p => {
         const gName = p.Grupo || 'OUTROS';
         const fat = p.Faturamento || 0;
-
         if (!groupsMap[gName]) groupsMap[gName] = { name: gName, total: 0, weight: 0, skus: 0 };
         groupsMap[gName].total += fat;
         groupsMap[gName].weight += (p['Peso (kg)'] || 0);
         groupsMap[gName].skus += 1;
       });
-
       return Object.values(groupsMap)
-        .map(g => ({
-          ...g,
-          share: totalGlobal > 0 ? parseFloat(((g.total / totalGlobal) * 100).toFixed(1)) : 0
-        }))
+        .map(g => ({ ...g, share: totalGlobal > 0 ? parseFloat(((g.total / totalGlobal) * 100).toFixed(1)) : 0 }))
         .sort((a, b) => b.total - a.total);
     }
 
@@ -999,7 +932,6 @@
       const totalFat = rawProducts.reduce((acc, p) => acc + (p.Faturamento || 0), 0);
       const totalWeight = rawProducts.reduce((acc, p) => acc + (p['Peso (kg)'] || 0), 0);
       const totalDeadstockVal = deadstockList.reduce((acc, p) => acc + (p.ValorEstoque || 0), 0);
-
       const precoMedioKgGlobal = totalWeight > 0 ? (totalFat / totalWeight) : 0;
       
       const prodsComVenda = rawProducts.filter(p => p.Quantidade > 0 && p.DiasCobertura < 999);
@@ -1009,14 +941,11 @@
 
       document.getElementById('kpi-faturamento').innerText = formatBRL(totalFat);
       document.getElementById('kpi-sub-faturamento').innerText = `${rawGroups.length} grupos ativos (líquido de devoluções)`;
-      
       document.getElementById('kpi-peso').innerText = formatKG(totalWeight);
       document.getElementById('kpi-margem-kg').innerText = formatBRL(precoMedioKgGlobal) + '/kg';
-
       document.getElementById('kpi-estoque-parado-val').innerText = formatBRL(totalDeadstockVal);
       document.getElementById('kpi-estoque-parado-qtd').innerText = `${deadstockList.length} SKUs sem Giro`;
       document.getElementById('kpi-cobertura-dias').innerText = `${coberturaMedia} Dias`;
-
       document.getElementById('tab-count-deadstock').innerText = deadstockList.length;
       document.getElementById('tab-count-items').innerText = rawProducts.length;
 
@@ -1034,7 +963,6 @@
       if (range === 'HIGH') filtered = deadstockList.filter(p => p.ValorEstoque >= 10000);
       else if (range === 'MID') filtered = deadstockList.filter(p => p.ValorEstoque >= 1000 && p.ValorEstoque < 10000);
       else if (range === 'LOW') filtered = deadstockList.filter(p => p.ValorEstoque < 1000);
-
       displayedDeadstockList = filtered;
       renderDeadstockTableCustom(filtered);
     }
@@ -1045,7 +973,6 @@
         tbody.innerHTML = '<tr><td colspan="7" class="text-center py-6 text-brand-muted">Nenhum item encontrado nesta faixa de valor.</td></tr>';
         return;
       }
-
       tbody.innerHTML = list.map(p => `
         <tr class="hover:bg-brand-cardHover/60 transition">
           <td class="py-3 px-3 font-mono text-brand-muted">${p.Código || '-'}</td>
@@ -1066,17 +993,12 @@
         deadstockSortField = field;
         deadstockSortOrder = 'desc';
       }
-
       displayedDeadstockList.sort((a, b) => {
         let valA = a[field] || 0;
         let valB = b[field] || 0;
-
-        if (typeof valA === 'string') {
-          return deadstockSortOrder === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
-        }
+        if (typeof valA === 'string') return deadstockSortOrder === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
         return deadstockSortOrder === 'asc' ? valA - valB : valB - valA;
       });
-
       renderDeadstockTableCustom(displayedDeadstockList);
     }
 
@@ -1088,12 +1010,10 @@
     function renderCurvaLucratividadeTable() {
       const tbody = document.getElementById('tableCurvaLucratividade');
       const listLucro = [...rawProducts].filter(p => p.Faturamento > 0).sort((a, b) => b.MargemBruta - a.MargemBruta);
-
       tbody.innerHTML = listLucro.map((p, idx) => {
         let badge = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30';
         if (p.MargemPct < 15) badge = 'bg-rose-500/10 text-rose-400 border-rose-500/30';
         else if (p.MargemPct < 30) badge = 'bg-amber-500/10 text-amber-400 border-amber-500/30';
-
         return `
           <tr class="hover:bg-brand-cardHover/60 transition">
             <td class="py-3 px-3 text-brand-muted font-mono">${idx + 1}</td>
@@ -1132,7 +1052,6 @@
     function renderMenoresTabelas() {
       const tbodyGrupos = document.getElementById('tableMenoresGrupos');
       const menosGrupos = [...rawGroups].reverse().slice(0, 10);
-
       tbodyGrupos.innerHTML = menosGrupos.map((g, idx) => `
         <tr class="hover:bg-brand-cardHover/60 transition">
           <td class="py-3 px-3 font-mono text-brand-muted">${rawGroups.length - idx}º</td>
@@ -1229,11 +1148,9 @@
         const top3Names = rawGroups.slice(0, 3).map(g => g.name).join(', ');
         const top3Val = rawGroups.slice(0, 3).reduce((acc, g) => acc + g.total, 0);
         const top3Pct = rawGroups.slice(0, 3).reduce((acc, g) => acc + g.share, 0).toFixed(1);
-
         document.getElementById('insight-concentracao').innerHTML = 
           `Apenas <b>3 Grupos principais</b> (${top3Names}) representam <b>${top3Pct}% (${formatBRL(top3Val)})</b> de toda a receita comercial.`;
       }
-
       if (deadstockList.length > 0) {
         const totalDeadVal = deadstockList.reduce((acc, p) => acc + (p.ValorEstoque || 0), 0);
         document.getElementById('insight-cauda').innerHTML = 
@@ -1269,7 +1186,6 @@
         html2canvas:  { scale: 2, useCORS: true, backgroundColor: '#0B0F17' },
         jsPDF:        { unit: 'in', format: 'a4', orientation: 'landscape' }
       };
-
       html2pdf().set(opt).from(element).save();
     }
 
