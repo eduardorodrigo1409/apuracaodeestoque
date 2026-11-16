@@ -77,7 +77,7 @@
                 <h1 class="font-bold text-lg text-white tracking-wide">Relatório Comercial & Estoque Disponível</h1>
                 <span class="bg-indigo-500/20 text-indigo-400 text-xs px-2.5 py-0.5 rounded-full border border-indigo-500/30 font-medium">Locais: Galpão & Acessórios</span>
               </div>
-              <p class="text-xs text-brand-muted" id="header-sub">Análise alinhada ao Sankhya ERP (<span id="header-dias-label">12</span> dias úteis de operação)</p>
+              <p class="text-xs text-brand-muted" id="header-sub">Análise alinhada ao Sankhya ERP (<span id="header-dias-label">11</span> dias úteis de operação)</p>
             </div>
           </div>
 
@@ -95,7 +95,7 @@
             <input 
               type="number" 
               id="diasUteisInput" 
-              value="12" 
+              value="11" 
               step="0.5" 
               min="0.5" 
               onchange="updateDiasUteis(this.value)"
@@ -161,7 +161,7 @@
           <div class="mt-3 w-full bg-brand-bg rounded-full h-1.5 overflow-hidden">
             <div class="bg-gradient-to-r from-emerald-500 to-teal-400 h-1.5 rounded-full" style="width: 100%"></div>
           </div>
-          <p class="text-[11px] text-brand-muted mt-2" id="kpi-sub-faturamento">vendas confirmadas</p>
+          <p class="text-[11px] text-brand-muted mt-2" id="kpi-sub-faturamento">vendas confirmadas (líquido de devoluções)</p>
         </div>
 
         <div class="glass-card rounded-2xl p-5 transition-all">
@@ -218,7 +218,7 @@
           <div class="mt-3 w-full bg-brand-bg rounded-full h-1.5 overflow-hidden">
             <div class="bg-gradient-to-r from-amber-500 to-orange-500 h-1.5 rounded-full" style="width: 65%"></div>
           </div>
-          <p class="text-[11px] text-brand-muted mt-2" id="kpi-sub-cobertura">Autonomia baseada no ritmo de 12 dias úteis</p>
+          <p class="text-[11px] text-brand-muted mt-2" id="kpi-sub-cobertura">Autonomia baseada no ritmo de 11 dias úteis</p>
         </div>
       </section>
 
@@ -502,10 +502,41 @@
     let barChartInstance = null;
     let compChartInstance = null;
 
-    let diasUteisPeriodo = 12;
+    let diasUteisPeriodo = 11;
 
     const formatBRL = (val) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val || 0);
     const formatKG = (val) => new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val || 0) + ' kg';
+
+    // Parser numérico seguro que aceita números nativos, negativos, formato BR (1.234,56) e parênteses (120,72)
+    function parseNumericValue(rawVal) {
+      if (typeof rawVal === 'number') return isNaN(rawVal) ? 0 : rawVal;
+      if (rawVal === null || rawVal === undefined) return 0;
+
+      let str = String(rawVal).trim();
+      if (!str) return 0;
+
+      let isNegative = false;
+      if (str.startsWith('(') && str.endsWith(')')) {
+        isNegative = true;
+        str = str.slice(1, -1);
+      }
+      if (str.includes('-')) {
+        isNegative = true;
+      }
+
+      // Remove símbolos de moeda, espaços e sinal de menos para limpar
+      str = str.replace(/[R$\s-]/g, '');
+
+      // Se tiver vírgula e ponto (ex: 1.234,56), remove pontos de milhar e troca vírgula por ponto
+      if (str.includes(',') && str.includes('.')) {
+        str = str.replace(/\./g, '').replace(',', '.');
+      } else if (str.includes(',')) {
+        str = str.replace(',', '.');
+      }
+
+      const num = parseFloat(str) || 0;
+      return isNegative ? -Math.abs(num) : num;
+    }
 
     function updateDiasUteis(val) {
       const parsed = parseFloat(val);
@@ -618,8 +649,10 @@
             const nome = String(row[colProd] || '').trim();
             const lowerNome = nome.toLowerCase();
 
+            // Ignora rodapés e totalizadores
             if (!nome || lowerNome === 'produto' || lowerNome === 'descrição' || lowerNome.includes('total geral') || lowerNome.includes('subtotal') || lowerNome === 'total') return;
 
+            // Filtro exclusivo de local para estoque: GALPÃO e ACESSÓRIOS
             if (colLocal !== -1) {
               const localNorm = normalizeText(row[colLocal]);
               if (localNorm !== 'GALPAO' && localNorm !== 'ACESSORIOS') {
@@ -630,17 +663,18 @@
             const cod = parseInt(row[colCod]) || 0;
             const grupo = String(row[colGrupo] || 'GERAL').trim().toUpperCase();
             
-            let fat = colFat !== -1 ? parseFloat(String(row[colFat] || 0).replace(',', '.')) || 0 : 0;
-            let peso = colPeso !== -1 ? parseFloat(String(row[colPeso] || 0).replace(',', '.')) || 0 : 0;
-            let qtd = colQtd !== -1 ? parseFloat(String(row[colQtd] || 0).replace(',', '.')) || 0 : 0;
-            let est = colEstoque !== -1 ? parseFloat(String(row[colEstoque] || 0).replace(',', '.')) || 0 : 0;
-            let valEst = colValorEstoque !== -1 ? parseFloat(String(row[colValorEstoque] || 0).replace(',', '.')) || 0 : 0;
+            let fat = colFat !== -1 ? parseNumericValue(row[colFat]) : 0;
+            let peso = colPeso !== -1 ? parseNumericValue(row[colPeso]) : 0;
+            let qtd = colQtd !== -1 ? parseNumericValue(row[colQtd]) : 0;
+            let est = colEstoque !== -1 ? parseNumericValue(row[colEstoque]) : 0;
+            let valEst = colValorEstoque !== -1 ? parseNumericValue(row[colValorEstoque]) : 0;
 
             const key = cod > 0 ? `COD_${cod}` : lowerNome;
 
             if (!itemMap[key]) {
               itemMap[key] = { Código: cod, Produto: nome, Grupo: grupo, Faturamento: fat, Quantidade: qtd, 'Peso (kg)': peso, Estoque: est, ValorEstoque: valEst };
             } else {
+              // Soma líquida (inclui devoluções negativas para bater exato com o Sankhya)
               itemMap[key].Faturamento += fat;
               itemMap[key].Quantidade += qtd;
               itemMap[key]['Peso (kg)'] += peso;
@@ -654,7 +688,8 @@
       let parsedList = Object.values(itemMap);
       parsedList.sort((a, b) => b.Faturamento - a.Faturamento);
 
-      const totalFatDinamico = parsedList.reduce((acc, p) => acc + (p.Faturamento > 0 ? p.Faturamento : 0), 0);
+      // Faturamento Líquido Total (considerando abatimentos de devoluções)
+      const totalFatDinamico = parsedList.reduce((acc, p) => acc + (p.Faturamento || 0), 0);
       let acum = 0;
 
       parsedList.forEach((p, idx) => {
@@ -688,7 +723,7 @@
       populateCategoryDropdown();
       updateDashboardData();
       
-      alert(`Planilhas carregadas com sucesso!\n- Locais considerados no estoque: GALPÃO e ACESSÓRIOS\n- ${rawProducts.length} Produtos processados\n- Período: ${String(diasUteisPeriodo).replace('.', ',')} dias úteis`);
+      alert(`Planilhas carregadas com sucesso!\n- Faturamento Líquido (abatendo devoluções): ${formatBRL(totalFatDinamico)}\n- Locais de estoque: GALPÃO e ACESSÓRIOS\n- Período: ${String(diasUteisPeriodo).replace('.', ',')} dias úteis`);
     }
 
     function generateGroupsFromProducts(products, totalGlobal) {
@@ -696,7 +731,7 @@
 
       products.forEach(p => {
         const gName = p.Grupo || 'OUTROS';
-        const fat = p.Faturamento > 0 ? p.Faturamento : 0;
+        const fat = p.Faturamento || 0;
 
         if (!groupsMap[gName]) groupsMap[gName] = { name: gName, total: 0, weight: 0, skus: 0 };
         groupsMap[gName].total += fat;
@@ -724,7 +759,8 @@
     }
 
     function updateDashboardData() {
-      const totalFat = rawProducts.reduce((acc, p) => acc + (p.Faturamento > 0 ? p.Faturamento : 0), 0);
+      // Soma líquida de faturamento e peso (incluindo devoluções negativas para bater exato com o Sankhya)
+      const totalFat = rawProducts.reduce((acc, p) => acc + (p.Faturamento || 0), 0);
       const totalWeight = rawProducts.reduce((acc, p) => acc + (p['Peso (kg)'] || 0), 0);
       const totalDeadstockVal = deadstockList.reduce((acc, p) => acc + (p.ValorEstoque || 0), 0);
 
@@ -736,7 +772,7 @@
         : 0;
 
       document.getElementById('kpi-faturamento').innerText = formatBRL(totalFat);
-      document.getElementById('kpi-sub-faturamento').innerText = `${rawGroups.length} grupos ativos`;
+      document.getElementById('kpi-sub-faturamento').innerText = `${rawGroups.length} grupos ativos (líquido de devoluções)`;
       
       document.getElementById('kpi-peso').innerText = formatKG(totalWeight);
       document.getElementById('kpi-margem-kg').innerText = formatBRL(precoMedioKgGlobal) + '/kg';
@@ -879,7 +915,7 @@
           <td class="py-3 px-3 font-mono text-brand-muted">${p.Código || '-'}</td>
           <td class="py-3 px-3 font-semibold text-white">${p.Produto}</td>
           <td class="py-3 px-3"><span class="bg-indigo-500/10 text-indigo-300 px-2 py-0.5 rounded text-[10px]">${p.Grupo}</span></td>
-          <td class="py-3 px-3 text-right font-bold text-emerald-400">${formatBRL(p.Faturamento)}</td>
+          <td class="py-3 px-3 text-right font-bold ${p.Faturamento < 0 ? 'text-rose-400' : 'text-emerald-400'}">${formatBRL(p.Faturamento)}</td>
           <td class="py-3 px-3 text-right font-mono text-cyan-400">${p.PrecoKg > 0 ? formatBRL(p.PrecoKg) + '/kg' : '-'}</td>
           <td class="py-3 px-3 text-right font-mono">${p.Estoque ? p.Estoque.toLocaleString('pt-BR') : '-'}</td>
           <td class="py-3 px-3 text-right font-bold ${p.DiasCobertura > 90 ? 'text-rose-400' : 'text-emerald-400'}">${p.DiasCobertura === 999 ? 'Sem Giro' : p.DiasCobertura + ' dias'}</td>
@@ -892,7 +928,7 @@
       Chart.defaults.font.family = 'Inter';
       Chart.defaults.color = '#94A3B8';
 
-      const displayGroups = rawGroups.slice(0, 8);
+      const displayGroups = rawGroups.filter(g => g.total > 0).slice(0, 8);
       const top3Share = displayGroups.slice(0, 3).reduce((acc, g) => acc + g.share, 0).toFixed(1);
       document.getElementById('top3-summary').innerHTML = `Top 3 representam <b>${top3Share}%</b> das vendas`;
 
@@ -911,7 +947,7 @@
         options: { responsive: true, maintainAspectRatio: false, cutout: '70%' }
       });
 
-      const topProds = rawProducts.slice(0, 8);
+      const topProds = rawProducts.filter(p => p.Faturamento > 0).slice(0, 8);
       if (topProds.length > 0) {
         document.getElementById('top-product-champion').innerHTML = `Produto Campeão: <b>${topProds[0].Produto}</b>`;
         document.getElementById('top-product-val').innerText = formatBRL(topProds[0].Faturamento);
@@ -927,7 +963,7 @@
         options: { responsive: true, maintainAspectRatio: false }
       });
 
-      const topGroupsComp = rawGroups.slice(0, 6);
+      const topGroupsComp = rawGroups.filter(g => g.total > 0).slice(0, 6);
       if (compChartInstance) compChartInstance.destroy();
       compChartInstance = new Chart(document.getElementById('groupComparisonChart'), {
         type: 'bar',
