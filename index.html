@@ -61,7 +61,6 @@
 </head>
 <body class="min-h-screen flex flex-col antialiased selection:bg-indigo-500 selection:text-white">
 
-  <!-- AREA PARA EXPORTAÇÃO EM PDF -->
   <div id="pdf-report-area">
 
     <!-- TOP EXECUTIVE HEADER -->
@@ -436,11 +435,16 @@
       <!-- TAB 5: DETALHAMENTO DE PRODUTOS -->
       <div id="content-tabela-produtos" class="hidden space-y-4">
         <div class="glass-panel rounded-2xl p-5">
-          <div class="flex justify-between items-center mb-4">
+          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
             <h3 class="font-bold text-white text-base">Ranking Geral de Produtos & Cobertura de Estoque (Galpão + Acessórios)</h3>
-            <button onclick="exportToExcel()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-1.5 rounded-lg font-semibold transition shadow">
-              <i class="fa-solid fa-file-excel mr-1"></i> Exportar Excel (.xlsx)
-            </button>
+            <div class="flex flex-wrap items-center gap-2">
+              <button onclick="enviarParaSimuladorOfertas()" class="bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs px-3 py-1.5 rounded-lg font-bold transition shadow flex items-center gap-1.5">
+                <i class="fa-solid fa-tags"></i> Enviar para Simulador de Ofertas
+              </button>
+              <button onclick="exportToExcel()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-1.5 rounded-lg font-semibold transition shadow flex items-center gap-1.5">
+                <i class="fa-solid fa-file-excel"></i> Exportar Excel (.xlsx)
+              </button>
+            </div>
           </div>
 
           <div class="overflow-x-auto max-h-[600px]">
@@ -506,11 +510,15 @@
   </div>
 
   <script>
+    // URL do repositório/página do Simulador de Ofertas (ajuste se o nome do repositório for diferente)
+    const URL_SIMULADOR_OFERTAS = '../simuladorofertas/';
+
     let rawProducts = [];
     let rawGroups = [];
     let deadstockList = [];
     let displayedDeadstockList = [];
     let activeFilteredProducts = [];
+    let currentDisplayedProducts = [];
 
     let deadstockSortField = 'ValorEstoque';
     let deadstockSortOrder = 'desc';
@@ -584,22 +592,22 @@
 
     function getFeriadosBrasil(year) {
       const feriados = new Set([
-        `${year}-01-01`, // Confraternização Universal
-        `${year}-04-21`, // Tiradentes
-        `${year}-05-01`, // Dia do Trabalho
-        `${year}-09-07`, // Independência do Brasil
-        `${year}-10-12`, // Nossa Senhora Aparecida
-        `${year}-11-02`, // Finados
-        `${year}-11-15`, // Proclamação da República
-        `${year}-11-20`, // Dia Nacional de Zumbi e da Consciência Negra
-        `${year}-12-25`  // Natal
+        `${year}-01-01`,
+        `${year}-04-21`,
+        `${year}-05-01`,
+        `${year}-09-07`,
+        `${year}-10-12`,
+        `${year}-11-02`,
+        `${year}-11-15`,
+        `${year}-11-20`,
+        `${year}-12-25`
       ]);
 
       const pascoa = getEasterDate(year);
-      feriados.add(formatDateISO(addDays(pascoa, -48))); // Segunda de Carnaval
-      feriados.add(formatDateISO(addDays(pascoa, -47))); // Terça de Carnaval
-      feriados.add(formatDateISO(addDays(pascoa, -2)));  // Sexta-feira Santa
-      feriados.add(formatDateISO(addDays(pascoa, 60)));  // Corpus Christi
+      feriados.add(formatDateISO(addDays(pascoa, -48)));
+      feriados.add(formatDateISO(addDays(pascoa, -47)));
+      feriados.add(formatDateISO(addDays(pascoa, -2)));
+      feriados.add(formatDateISO(addDays(pascoa, 60)));
 
       return feriados;
     }
@@ -860,7 +868,6 @@
         }
       }
 
-      // Desconsidera itens que estão com saldo zerado (Estoque <= 0) e sem vendas no período
       let parsedList = Object.values(itemMap).filter(p => {
         const temEstoque = (p.Estoque || 0) > 0;
         const temVendaOuDevolucao = (p.Faturamento || 0) !== 0 || (p.Quantidade || 0) !== 0;
@@ -902,11 +909,58 @@
       rawProducts = parsedList;
       rawGroups = generateGroupsFromProducts(rawProducts, totalFatDinamico);
       activeFilteredProducts = [...rawProducts];
+      currentDisplayedProducts = [...rawProducts];
+
+      // Salva automaticamente os itens com saldo disponível no localStorage para o Simulador de Ofertas
+      salvarBaseParaSimulador(rawProducts);
 
       populateCategoryDropdown();
       updateDashboardData();
       
-      alert(`Planilhas carregadas com sucesso!\n- Faturamento Líquido (abatendo devoluções): ${formatBRL(totalFatDinamico)}\n- Itens ativos (desconsiderando saldo zerado sem venda): ${parsedList.length} SKUs\n- Período: ${String(diasUteisPeriodo).replace('.', ',')} dias úteis`);
+      alert(`Planilhas carregadas com sucesso!\n- Faturamento Líquido: ${formatBRL(totalFatDinamico)}\n- Itens ativos: ${parsedList.length} SKUs\n- Período: ${String(diasUteisPeriodo).replace('.', ',')} dias úteis`);
+    }
+
+    function salvarBaseParaSimulador(lista) {
+      const itensComEstoque = lista
+        .filter(item => (item.Estoque || 0) > 0)
+        .map(item => {
+          const qtd = item.Estoque || 0;
+          const valTot = item.ValorEstoque > 0 ? item.ValorEstoque : (qtd * (item.CustoPosicao || 0));
+          const custoUnit = (item.CustoPosicao && item.CustoPosicao > 0)
+            ? item.CustoPosicao
+            : (qtd > 0 ? valTot / qtd : 0);
+
+          return {
+            codigo: item.Código || '',
+            produto: item.Produto,
+            grupo: item.Grupo || 'GERAL',
+            qtd: qtd,
+            custo: custoUnit,
+            custoTotalExato: valTot
+          };
+        });
+
+      localStorage.setItem('sankhya_simulador_ofertas_payload', JSON.stringify({
+        updatedAt: new Date().toISOString(),
+        items: itensComEstoque
+      }));
+    }
+
+    function enviarParaSimuladorOfertas() {
+      const base = currentDisplayedProducts.length > 0 ? currentDisplayedProducts : activeFilteredProducts;
+      if (!base || base.length === 0) {
+        alert("Carregue as planilhas antes de enviar para o Simulador de Ofertas.");
+        return;
+      }
+
+      const itensDisponiveis = base.filter(item => (item.Estoque || 0) > 0);
+      if (itensDisponiveis.length === 0) {
+        alert("Nenhum dos itens filtrados possui Qtd Disponível maior que zero.");
+        return;
+      }
+
+      salvarBaseParaSimulador(itensDisponiveis);
+      window.open(URL_SIMULADOR_OFERTAS, '_blank');
     }
 
     function generateGroupsFromProducts(products, totalGlobal) {
@@ -1091,6 +1145,7 @@
     }
 
     function renderProductsTable(products) {
+      currentDisplayedProducts = products;
       const tbody = document.getElementById('productsTableBody');
       tbody.innerHTML = products.map((p, idx) => `
         <tr class="hover:bg-brand-cardHover/60 transition">
