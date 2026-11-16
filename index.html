@@ -56,6 +56,7 @@
     :fullscreen { background-color: #0B0F17; overflow-y: auto; padding: 1.5rem; }
     th.sortable { cursor: pointer; user-select: none; }
     th.sortable:hover { color: #FFFFFF; background-color: rgba(99, 102, 241, 0.15); }
+    input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; opacity: 0.8; }
   </style>
 </head>
 <body class="min-h-screen flex flex-col antialiased selection:bg-indigo-500 selection:text-white">
@@ -65,73 +66,85 @@
 
     <!-- TOP EXECUTIVE HEADER -->
     <header class="glass-panel sticky top-0 z-50 border-b border-brand-border px-4 lg:px-8 py-3 transition-all">
-      <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+      <div class="max-w-7xl mx-auto flex flex-col xl:flex-row items-center justify-between gap-3">
         
-        <div class="flex items-center gap-4 w-full md:w-auto justify-between md:justify-start">
+        <div class="flex items-center gap-4 w-full xl:w-auto justify-between xl:justify-start">
           <div class="flex items-center gap-3">
             <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-emerald-400 flex items-center justify-center shadow-lg shadow-indigo-500/30">
               <i class="fa-solid fa-chart-line text-white text-lg"></i>
             </div>
             <div>
               <div class="flex items-center gap-2">
-                <h1 class="font-bold text-lg text-white tracking-wide">Relatório Comercial & Estoque Disponível</h1>
-                <span class="bg-indigo-500/20 text-indigo-400 text-xs px-2.5 py-0.5 rounded-full border border-indigo-500/30 font-medium">Locais: Galpão & Acessórios</span>
+                <h1 class="font-bold text-base lg:text-lg text-white tracking-wide">Relatório Comercial & Estoque Disponível</h1>
+                <span class="bg-indigo-500/20 text-indigo-400 text-[11px] px-2 py-0.5 rounded-full border border-indigo-500/30 font-medium hidden sm:inline-block">Locais: Galpão & Acessórios</span>
               </div>
-              <p class="text-xs text-brand-muted" id="header-sub">Análise alinhada ao Sankhya ERP (<span id="header-dias-label">11</span> dias úteis de operação)</p>
+              <p class="text-xs text-brand-muted" id="header-sub">
+                Análise alinhada ao Sankhya ERP (<span id="header-dias-label" class="text-amber-400 font-semibold">11</span> dias úteis — sem domingos e feriados)
+              </p>
             </div>
           </div>
 
-          <button onclick="toggleFullscreen()" class="md:hidden p-2 text-brand-muted hover:text-white rounded-lg bg-brand-card">
+          <button onclick="toggleFullscreen()" class="xl:hidden p-2 text-brand-muted hover:text-white rounded-lg bg-brand-card">
             <i class="fa-solid fa-expand"></i>
           </button>
         </div>
 
-        <div class="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
-          <!-- CAMPO DE DIAS ÚTEIS EDITÁVEL -->
-          <div class="flex items-center gap-1.5 bg-brand-bg/90 border border-brand-border px-2.5 py-1 rounded-lg">
-            <label for="diasUteisInput" class="text-[11px] font-semibold text-amber-400 whitespace-nowrap">
-              <i class="fa-regular fa-calendar-days mr-1"></i>Dias Úteis:
-            </label>
-            <input 
-              type="number" 
-              id="diasUteisInput" 
-              value="11" 
-              step="0.5" 
-              min="0.5" 
-              onchange="updateDiasUteis(this.value)"
-              oninput="updateDiasUteis(this.value)"
-              class="w-14 bg-transparent text-white font-bold text-xs text-center focus:outline-none border-b border-amber-500/50 focus:border-amber-400"
-            >
+        <div class="flex flex-wrap items-center gap-2 w-full xl:w-auto">
+          <!-- SELETOR DE PERÍODO (DATA INICIAL E DATA FINAL) -->
+          <div class="flex flex-wrap items-center gap-2 bg-brand-bg/90 border border-brand-border px-2.5 py-1 rounded-lg">
+            <div class="flex items-center gap-1">
+              <label for="dataInicialInput" class="text-[11px] font-semibold text-amber-400 whitespace-nowrap">De:</label>
+              <input 
+                type="date" 
+                id="dataInicialInput" 
+                value="2026-11-01" 
+                onchange="recalcularPeriodoDatas()"
+                class="bg-transparent text-white font-semibold text-xs focus:outline-none border-b border-amber-500/40 focus:border-amber-400"
+              >
+            </div>
+            <div class="flex items-center gap-1">
+              <label for="dataFinalInput" class="text-[11px] font-semibold text-amber-400 whitespace-nowrap">Até:</label>
+              <input 
+                type="date" 
+                id="dataFinalInput" 
+                value="2026-11-15" 
+                onchange="recalcularPeriodoDatas()"
+                class="bg-transparent text-white font-semibold text-xs focus:outline-none border-b border-amber-500/40 focus:border-amber-400"
+              >
+            </div>
+            <span id="badgeDiasUteis" class="bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[11px] font-bold px-2 py-0.5 rounded whitespace-nowrap" title="Segunda a Sexta = 1 dia | Sábado = 0,5 dia | Domingos e Feriados = 0">
+              11 dias úteis
+            </span>
           </div>
 
           <!-- BOTÃO CARREGAR PLANILHAS -->
-          <label class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3.5 py-1.5 rounded-lg font-bold cursor-pointer transition flex items-center gap-2 shadow-lg">
+          <label class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-1.5 rounded-lg font-bold cursor-pointer transition flex items-center gap-1.5 shadow-lg">
             <i class="fa-solid fa-file-excel text-sm"></i> 
             <span>Carregar Planilhas</span>
             <input type="file" id="excelFileInput" accept=".xlsx, .xls, .csv, .xml" multiple class="hidden" onchange="handleFileUpload(event)">
           </label>
 
           <!-- BOTÃO GERAR RELATÓRIO PDF -->
-          <button onclick="generatePDFReport()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-3.5 py-1.5 rounded-lg font-bold transition flex items-center gap-2 shadow-lg">
+          <button onclick="generatePDFReport()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 shadow-lg">
             <i class="fa-solid fa-file-pdf text-sm text-rose-300"></i>
-            <span>Gerar PDF Reunião</span>
+            <span>PDF Reunião</span>
           </button>
 
-          <div class="relative w-full md:w-36">
-            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-brand-muted text-xs"></i>
+          <div class="relative w-full sm:w-32">
+            <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-1/2 -translate-y-1/2 text-brand-muted text-xs"></i>
             <input 
               type="text" 
               id="searchInput"
-              placeholder="Buscar item/grupo..." 
+              placeholder="Buscar item..." 
               oninput="handleSearch(this.value)"
-              class="w-full pl-8 pr-2.5 py-1.5 text-xs bg-brand-bg/80 border border-brand-border rounded-lg text-white placeholder-brand-muted focus:outline-none focus:border-indigo-500 transition"
+              class="w-full pl-7 pr-2 py-1.5 text-xs bg-brand-bg/80 border border-brand-border rounded-lg text-white placeholder-brand-muted focus:outline-none focus:border-indigo-500 transition"
             >
           </div>
 
           <select 
             id="categoryFilter" 
             onchange="filterByCategory(this.value)"
-            class="bg-brand-bg/80 border border-brand-border text-brand-text text-xs rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-indigo-500 cursor-pointer"
+            class="bg-brand-bg/80 border border-brand-border text-brand-text text-xs rounded-lg px-2 py-1.5 focus:outline-none focus:border-indigo-500 cursor-pointer max-w-[145px]"
           >
             <option value="ALL">Todos os Grupos</option>
           </select>
@@ -347,6 +360,9 @@
                   <th onclick="toggleSortDeadstock('Estoque')" class="py-3 px-3 text-right sortable hover:text-white">
                     Qtd Disponível <i id="sort-icon-Estoque" class="fa-solid fa-sort ml-1 opacity-50"></i>
                   </th>
+                  <th onclick="toggleSortDeadstock('CustoPosicao')" class="py-3 px-3 text-right sortable hover:text-white">
+                    Custo Unit. (R$) <i id="sort-icon-CustoPosicao" class="fa-solid fa-sort ml-1 opacity-50"></i>
+                  </th>
                   <th onclick="toggleSortDeadstock('ValorEstoque')" class="py-3 px-3 text-right sortable hover:text-white">
                     Valor Disponível (R$) <i id="sort-icon-ValorEstoque" class="fa-solid fa-sort-down ml-1 text-rose-400"></i>
                   </th>
@@ -507,7 +523,129 @@
     const formatBRL = (val) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val || 0);
     const formatKG = (val) => new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val || 0) + ' kg';
 
-    // Parser numérico seguro que aceita números nativos, negativos, formato BR (1.234,56) e parênteses (120,72)
+    // Calcula a Páscoa (Algoritmo Meeus/Jones/Butcher) para feriados móveis
+    function getEasterDate(year) {
+      const a = year % 19;
+      const b = Math.floor(year / 100);
+      const c = year % 100;
+      const d = Math.floor(b / 4);
+      const e = b % 4;
+      const f = Math.floor((b + 8) / 25);
+      const g = Math.floor((b - f + 1) / 3);
+      const h = (19 * a + b - d - g + 15) % 30;
+      const i = Math.floor(c / 4);
+      const k = c % 4;
+      const l = (32 + 2 * e + 2 * i - h - k) % 7;
+      const m = Math.floor((a + 11 * h + 22 * l) / 451);
+      const month = Math.floor((h + l - 7 * m + 114) / 31) - 1;
+      const day = ((h + l - 7 * m + 114) % 31) + 1;
+      return new Date(year, month, day);
+    }
+
+    function formatDateISO(dt) {
+      const y = dt.getFullYear();
+      const m = String(dt.getMonth() + 1).padStart(2, '0');
+      const d = String(dt.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+
+    function addDays(dt, days) {
+      const res = new Date(dt.getTime());
+      res.setDate(res.getDate() + days);
+      return res;
+    }
+
+    // Retorna conjunto de feriados nacionais do Brasil para um determinado ano
+    function getFeriadosBrasil(year) {
+      const feriados = new Set([
+        `${year}-01-01`, // Confraternização Universal
+        `${year}-04-21`, // Tiradentes
+        `${year}-05-01`, // Dia do Trabalho
+        `${year}-09-07`, // Independência do Brasil
+        `${year}-10-12`, // Nossa Senhora Aparecida
+        `${year}-11-02`, // Finados
+        `${year}-11-15`, // Proclamação da República
+        `${year}-11-20`, // Dia Nacional de Zumbi e da Consciência Negra
+        `${year}-12-25`  // Natal
+      ]);
+
+      const pascoa = getEasterDate(year);
+      feriados.add(formatDateISO(addDays(pascoa, -48))); // Segunda de Carnaval
+      feriados.add(formatDateISO(addDays(pascoa, -47))); // Terça de Carnaval
+      feriados.add(formatDateISO(addDays(pascoa, -2)));  // Sexta-feira Santa
+      feriados.add(formatDateISO(addDays(pascoa, 60)));  // Corpus Christi
+
+      return feriados;
+    }
+
+    // Calcula dias úteis entre Data Inicial e Data Final (Seg-Sex = 1, Sáb = 0.5, Domingos e Feriados = 0)
+    function calcularDiasUteisEntreDatas(dataIniStr, dataFimStr) {
+      if (!dataIniStr || !dataFimStr) return 11;
+
+      const [y1, m1, d1] = dataIniStr.split('-').map(Number);
+      const [y2, m2, d2] = dataFimStr.split('-').map(Number);
+
+      const start = new Date(y1, m1 - 1, d1);
+      const end = new Date(y2, m2 - 1, d2);
+
+      if (isNaN(start.getTime()) || isNaN(end.getTime()) || start > end) {
+        return 0;
+      }
+
+      const feriadosCache = {};
+      let totalDias = 0;
+      let curr = new Date(start.getTime());
+
+      while (curr <= end) {
+        const year = curr.getFullYear();
+        if (!feriadosCache[year]) {
+          feriadosCache[year] = getFeriadosBrasil(year);
+        }
+
+        const iso = formatDateISO(curr);
+        const dayOfWeek = curr.getDay(); // 0 = Domingo, 6 = Sábado
+
+        // Desconsidera domingos e feriados
+        if (dayOfWeek !== 0 && !feriadosCache[year].has(iso)) {
+          if (dayOfWeek === 6) {
+            totalDias += 0.5; // Sábado meio expediente
+          } else {
+            totalDias += 1.0; // Segunda a Sexta
+          }
+        }
+
+        curr.setDate(curr.getDate() + 1);
+      }
+
+      return totalDias;
+    }
+
+    function recalcularPeriodoDatas() {
+      const ini = document.getElementById('dataInicialInput').value;
+      const fim = document.getElementById('dataFinalInput').value;
+
+      const calculado = calcularDiasUteisEntreDatas(ini, fim);
+      if (calculado <= 0) {
+        document.getElementById('badgeDiasUteis').innerText = 'Período inválido';
+        return;
+      }
+
+      diasUteisPeriodo = calculado;
+      const formattedDias = String(diasUteisPeriodo).replace('.', ',');
+
+      document.getElementById('badgeDiasUteis').innerText = `${formattedDias} dias úteis`;
+      document.getElementById('header-dias-label').innerText = formattedDias;
+      document.getElementById('kpi-sub-cobertura').innerText = `Autonomia baseada no ritmo de ${formattedDias} dias úteis`;
+
+      if (rawProducts.length > 0) {
+        rawProducts.forEach(p => {
+          const vendaDiariaQtd = (p.Quantidade || 0) / diasUteisPeriodo;
+          p.DiasCobertura = vendaDiariaQtd > 0 ? Math.round((p.Estoque || 0) / vendaDiariaQtd) : (p.Estoque > 0 ? 999 : 0);
+        });
+        updateDashboardData();
+      }
+    }
+
     function parseNumericValue(rawVal) {
       if (typeof rawVal === 'number') return isNaN(rawVal) ? 0 : rawVal;
       if (rawVal === null || rawVal === undefined) return 0;
@@ -524,10 +662,8 @@
         isNegative = true;
       }
 
-      // Remove símbolos de moeda, espaços e sinal de menos para limpar
       str = str.replace(/[R$\s-]/g, '');
 
-      // Se tiver vírgula e ponto (ex: 1.234,56), remove pontos de milhar e troca vírgula por ponto
       if (str.includes(',') && str.includes('.')) {
         str = str.replace(/\./g, '').replace(',', '.');
       } else if (str.includes(',')) {
@@ -536,24 +672,6 @@
 
       const num = parseFloat(str) || 0;
       return isNegative ? -Math.abs(num) : num;
-    }
-
-    function updateDiasUteis(val) {
-      const parsed = parseFloat(val);
-      if (!isNaN(parsed) && parsed > 0) {
-        diasUteisPeriodo = parsed;
-        const formattedDias = String(diasUteisPeriodo).replace('.', ',');
-        document.getElementById('header-dias-label').innerText = formattedDias;
-        document.getElementById('kpi-sub-cobertura').innerText = `Autonomia baseada no ritmo de ${formattedDias} dias úteis`;
-
-        if (rawProducts.length > 0) {
-          rawProducts.forEach(p => {
-            const vendaDiariaQtd = (p.Quantidade || 0) / diasUteisPeriodo;
-            p.DiasCobertura = vendaDiariaQtd > 0 ? Math.round((p.Estoque || 0) / vendaDiariaQtd) : (p.Estoque > 0 ? 999 : 0);
-          });
-          updateDashboardData();
-        }
-      }
     }
 
     function toggleFullscreen() {
@@ -587,6 +705,9 @@
       const files = event.target.files;
       if (!files || files.length === 0) return;
 
+      // Garante que os dias úteis estejam sincronizados com as datas selecionadas antes de processar
+      recalcularPeriodoDatas();
+
       let itemMap = {};
 
       for (let i = 0; i < files.length; i++) {
@@ -598,7 +719,7 @@
           const worksheet = workbook.Sheets[sheetName];
           const rawRows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
-          let colCod = -1, colProd = -1, colGrupo = -1, colFat = -1, colQtd = -1, colPeso = -1, colEstoque = -1, colValorEstoque = -1, colLocal = -1;
+          let colCod = -1, colProd = -1, colGrupo = -1, colFat = -1, colQtd = -1, colPeso = -1, colEstoque = -1, colCusto = -1, colValorEstoque = -1, colLocal = -1;
           let headerRowIdx = -1;
 
           for (let r = 0; r < Math.min(20, rawRows.length); r++) {
@@ -630,6 +751,11 @@
                 colEstoque = c;
               }
 
+              // Identifica a coluna M ("Custo da posição" / "Custo") na planilha de estoque
+              if (val.includes('custo') && !val.includes('data')) {
+                colCusto = c;
+              }
+
               if (val.includes('valor') && val.includes('estoque')) colValorEstoque = c;
             });
 
@@ -640,6 +766,11 @@
           }
 
           if (headerRowIdx === -1) headerRowIdx = 0;
+
+          // Fallback para coluna M (índice 12) caso seja a planilha de estoque e o cabeçalho de custo não tenha sido detectado
+          if (colLocal !== -1 && colCusto === -1 && rawRows[headerRowIdx] && rawRows[headerRowIdx].length > 12) {
+            colCusto = 12;
+          }
 
           const dataRows = rawRows.slice(headerRowIdx + 1);
 
@@ -667,19 +798,44 @@
             let peso = colPeso !== -1 ? parseNumericValue(row[colPeso]) : 0;
             let qtd = colQtd !== -1 ? parseNumericValue(row[colQtd]) : 0;
             let est = colEstoque !== -1 ? parseNumericValue(row[colEstoque]) : 0;
+            let custo = colCusto !== -1 ? parseNumericValue(row[colCusto]) : 0;
             let valEst = colValorEstoque !== -1 ? parseNumericValue(row[colValorEstoque]) : 0;
 
             const key = cod > 0 ? `COD_${cod}` : lowerNome;
 
             if (!itemMap[key]) {
-              itemMap[key] = { Código: cod, Produto: nome, Grupo: grupo, Faturamento: fat, Quantidade: qtd, 'Peso (kg)': peso, Estoque: est, ValorEstoque: valEst };
+              itemMap[key] = {
+                Código: cod,
+                Produto: nome,
+                Grupo: grupo,
+                Faturamento: fat,
+                Quantidade: qtd,
+                'Peso (kg)': peso,
+                Estoque: est,
+                CustoPosicao: custo,
+                ValorEstoque: valEst
+              };
             } else {
-              // Soma líquida (inclui devoluções negativas para bater exato com o Sankhya)
+              const estAnterior = itemMap[key].Estoque || 0;
+              const custoAnterior = itemMap[key].CustoPosicao || 0;
+
               itemMap[key].Faturamento += fat;
               itemMap[key].Quantidade += qtd;
               itemMap[key]['Peso (kg)'] += peso;
-              if (colEstoque !== -1) itemMap[key].Estoque += est; 
-              if (colValorEstoque !== -1) itemMap[key].ValorEstoque += valEst;
+
+              if (colEstoque !== -1) {
+                itemMap[key].Estoque += est;
+              }
+              if (colCusto !== -1 && custo > 0) {
+                if (estAnterior + est > 0 && custoAnterior > 0) {
+                  itemMap[key].CustoPosicao = ((estAnterior * custoAnterior) + (est * custo)) / (estAnterior + est);
+                } else {
+                  itemMap[key].CustoPosicao = custo;
+                }
+              }
+              if (colValorEstoque !== -1) {
+                itemMap[key].ValorEstoque += valEst;
+              }
             }
           });
         }
@@ -688,17 +844,19 @@
       let parsedList = Object.values(itemMap);
       parsedList.sort((a, b) => b.Faturamento - a.Faturamento);
 
-      // Faturamento Líquido Total (considerando abatimentos de devoluções)
       const totalFatDinamico = parsedList.reduce((acc, p) => acc + (p.Faturamento || 0), 0);
       let acum = 0;
 
       parsedList.forEach((p, idx) => {
         p['Posição'] = idx + 1;
+        if ((!p.CustoPosicao || p.CustoPosicao === 0) && p.Estoque > 0 && p.ValorEstoque > 0) {
+          p.CustoPosicao = p.ValorEstoque / p.Estoque;
+        }
         p.PrecoKg = p['Peso (kg)'] > 0 ? (p.Faturamento / p['Peso (kg)']) : 0;
         p.MargemBruta = p.Faturamento - p.ValorEstoque;
         p.MargemPct = p.Faturamento > 0 ? ((p.MargemBruta / p.Faturamento) * 100) : 0;
 
-        const vendaDiariaQtd = (p.Quantidade || 0) / diasUteisPeriodo;
+        const vendaDiariaQtd = (p.Quantidade || 0) / (diasUteisPeriodo || 1);
         p.DiasCobertura = vendaDiariaQtd > 0 ? Math.round((p.Estoque || 0) / vendaDiariaQtd) : (p.Estoque > 0 ? 999 : 0);
 
         if (p.Faturamento <= 0) {
@@ -723,7 +881,7 @@
       populateCategoryDropdown();
       updateDashboardData();
       
-      alert(`Planilhas carregadas com sucesso!\n- Faturamento Líquido (abatendo devoluções): ${formatBRL(totalFatDinamico)}\n- Locais de estoque: GALPÃO e ACESSÓRIOS\n- Período: ${String(diasUteisPeriodo).replace('.', ',')} dias úteis`);
+      alert(`Planilhas carregadas com sucesso!\n- Faturamento Líquido (abatendo devoluções): ${formatBRL(totalFatDinamico)}\n- Locais de estoque: GALPÃO e ACESSÓRIOS\n- Período: ${String(diasUteisPeriodo).replace('.', ',')} dias úteis (descontando domingos e feriados)`);
     }
 
     function generateGroupsFromProducts(products, totalGlobal) {
@@ -759,7 +917,6 @@
     }
 
     function updateDashboardData() {
-      // Soma líquida de faturamento e peso (incluindo devoluções negativas para bater exato com o Sankhya)
       const totalFat = rawProducts.reduce((acc, p) => acc + (p.Faturamento || 0), 0);
       const totalWeight = rawProducts.reduce((acc, p) => acc + (p['Peso (kg)'] || 0), 0);
       const totalDeadstockVal = deadstockList.reduce((acc, p) => acc + (p.ValorEstoque || 0), 0);
@@ -806,7 +963,7 @@
     function renderDeadstockTableCustom(list) {
       const tbody = document.getElementById('tableDeadstock');
       if (list.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-6 text-brand-muted">Nenhum item encontrado nesta faixa de valor.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center py-6 text-brand-muted">Nenhum item encontrado nesta faixa de valor.</td></tr>';
         return;
       }
 
@@ -816,6 +973,7 @@
           <td class="py-3 px-3 font-semibold text-white">${p.Produto}</td>
           <td class="py-3 px-3"><span class="bg-indigo-500/10 text-indigo-300 px-2 py-0.5 rounded text-[10px]">${p.Grupo}</span></td>
           <td class="py-3 px-3 text-right font-bold text-amber-400">${p.Estoque.toLocaleString('pt-BR')}</td>
+          <td class="py-3 px-3 text-right font-mono text-cyan-400">${formatBRL(p.CustoPosicao)}</td>
           <td class="py-3 px-3 text-right font-bold text-rose-400">${formatBRL(p.ValorEstoque)}</td>
           <td class="py-3 px-3 text-center"><span class="bg-rose-500/20 text-rose-300 border border-rose-500/30 px-2 py-0.5 rounded text-[11px] font-semibold">Oferta de Combo com Curva A / Comissão Extra</span></td>
         </tr>
@@ -1050,6 +1208,7 @@
         'Peso (kg)': Number((item['Peso (kg)'] || 0).toFixed(2)),
         'Preço Médio/kg (R$)': Number((item.PrecoKg || 0).toFixed(2)),
         'Qtd Disponível': Number((item.Estoque || 0).toFixed(2)),
+        'Custo (R$)': Number((item.CustoPosicao || 0).toFixed(4)),
         'Valor Disponível (R$)': Number((item.ValorEstoque || 0).toFixed(2)),
         'Cobertura (Dias)': item.DiasCobertura === 999 ? 'Sem Giro' : item.DiasCobertura,
         'Classe ABC': item.CurvaABC || 'Curva C'
@@ -1059,7 +1218,7 @@
       ws['!cols'] = [
         { wch: 10 }, { wch: 12 }, { wch: 45 }, { wch: 24 },
         { wch: 18 }, { wch: 15 }, { wch: 20 }, { wch: 16 },
-        { wch: 22 }, { wch: 18 }, { wch: 14 }
+        { wch: 16 }, { wch: 22 }, { wch: 18 }, { wch: 14 }
       ];
 
       const wb = XLSX.utils.book_new();
@@ -1067,7 +1226,7 @@
       XLSX.writeFile(wb, 'Ranking_Produtos_Completo.xlsx');
     }
 
-    // EXPORTAÇÃO NATIVA EXCEL (.XLSX) - ESTOQUE PARADO (DEADSTOCK)
+    // EXPORTAÇÃO NATIVA EXCEL (.XLSX) - ESTOQUE PARADO (INCLUINDO COLUNA CUSTO)
     function exportDeadstockExcel() {
       const listToExport = displayedDeadstockList.length > 0 ? displayedDeadstockList : deadstockList;
       if (!listToExport || listToExport.length === 0) {
@@ -1081,6 +1240,7 @@
         'Grupo': p.Grupo,
         'Locais Considerados': 'GALPÃO + ACESSÓRIOS',
         'Qtd Disponível': Number((p.Estoque || 0).toFixed(2)),
+        'Custo (R$)': Number((p.CustoPosicao || 0).toFixed(4)),
         'Valor Disponível (R$)': Number((p.ValorEstoque || 0).toFixed(2)),
         'Vendas no Período': 0,
         'Ação Tática Sugerida': 'Oferta de Combo com Curva A / Comissão Extra'
@@ -1089,13 +1249,18 @@
       const ws = XLSX.utils.json_to_sheet(rows);
       ws['!cols'] = [
         { wch: 12 }, { wch: 45 }, { wch: 24 }, { wch: 24 },
-        { wch: 16 }, { wch: 22 }, { wch: 18 }, { wch: 42 }
+        { wch: 16 }, { wch: 16 }, { wch: 22 }, { wch: 18 }, { wch: 42 }
       ];
 
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Estoque_Parado');
       XLSX.writeFile(wb, 'Relatorio_Estoque_Disponivel_Parado.xlsx');
     }
+
+    // Inicializa cálculo de dias úteis ao carregar a página
+    window.addEventListener('DOMContentLoaded', () => {
+      recalcularPeriodoDatas();
+    });
   </script>
 </body>
 </html>
