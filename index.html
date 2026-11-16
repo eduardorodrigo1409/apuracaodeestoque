@@ -523,7 +523,6 @@
     const formatBRL = (val) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val || 0);
     const formatKG = (val) => new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val || 0) + ' kg';
 
-    // Calcula a Páscoa (Algoritmo Meeus/Jones/Butcher) para feriados móveis
     function getEasterDate(year) {
       const a = year % 19;
       const b = Math.floor(year / 100);
@@ -555,7 +554,6 @@
       return res;
     }
 
-    // Retorna conjunto de feriados nacionais do Brasil para um determinado ano
     function getFeriadosBrasil(year) {
       const feriados = new Set([
         `${year}-01-01`, // Confraternização Universal
@@ -578,7 +576,6 @@
       return feriados;
     }
 
-    // Calcula dias úteis entre Data Inicial e Data Final (Seg-Sex = 1, Sáb = 0.5, Domingos e Feriados = 0)
     function calcularDiasUteisEntreDatas(dataIniStr, dataFimStr) {
       if (!dataIniStr || !dataFimStr) return 11;
 
@@ -603,14 +600,13 @@
         }
 
         const iso = formatDateISO(curr);
-        const dayOfWeek = curr.getDay(); // 0 = Domingo, 6 = Sábado
+        const dayOfWeek = curr.getDay();
 
-        // Desconsidera domingos e feriados
         if (dayOfWeek !== 0 && !feriadosCache[year].has(iso)) {
           if (dayOfWeek === 6) {
-            totalDias += 0.5; // Sábado meio expediente
+            totalDias += 0.5;
           } else {
-            totalDias += 1.0; // Segunda a Sexta
+            totalDias += 1.0;
           }
         }
 
@@ -705,7 +701,6 @@
       const files = event.target.files;
       if (!files || files.length === 0) return;
 
-      // Garante que os dias úteis estejam sincronizados com as datas selecionadas antes de processar
       recalcularPeriodoDatas();
 
       let itemMap = {};
@@ -751,7 +746,6 @@
                 colEstoque = c;
               }
 
-              // Identifica a coluna M ("Custo da posição" / "Custo") na planilha de estoque
               if (val.includes('custo') && !val.includes('data')) {
                 colCusto = c;
               }
@@ -767,7 +761,6 @@
 
           if (headerRowIdx === -1) headerRowIdx = 0;
 
-          // Fallback para coluna M (índice 12) caso seja a planilha de estoque e o cabeçalho de custo não tenha sido detectado
           if (colLocal !== -1 && colCusto === -1 && rawRows[headerRowIdx] && rawRows[headerRowIdx].length > 12) {
             colCusto = 12;
           }
@@ -780,10 +773,8 @@
             const nome = String(row[colProd] || '').trim();
             const lowerNome = nome.toLowerCase();
 
-            // Ignora rodapés e totalizadores
             if (!nome || lowerNome === 'produto' || lowerNome === 'descrição' || lowerNome.includes('total geral') || lowerNome.includes('subtotal') || lowerNome === 'total') return;
 
-            // Filtro exclusivo de local para estoque: GALPÃO e ACESSÓRIOS
             if (colLocal !== -1) {
               const localNorm = normalizeText(row[colLocal]);
               if (localNorm !== 'GALPAO' && localNorm !== 'ACESSORIOS') {
@@ -841,7 +832,13 @@
         }
       }
 
-      let parsedList = Object.values(itemMap);
+      // Desconsidera itens que estão com saldo zerado (Estoque <= 0) e sem vendas no período
+      let parsedList = Object.values(itemMap).filter(p => {
+        const temEstoque = (p.Estoque || 0) > 0;
+        const temVendaOuDevolucao = (p.Faturamento || 0) !== 0 || (p.Quantidade || 0) !== 0;
+        return temEstoque || temVendaOuDevolucao;
+      });
+
       parsedList.sort((a, b) => b.Faturamento - a.Faturamento);
 
       const totalFatDinamico = parsedList.reduce((acc, p) => acc + (p.Faturamento || 0), 0);
@@ -881,7 +878,7 @@
       populateCategoryDropdown();
       updateDashboardData();
       
-      alert(`Planilhas carregadas com sucesso!\n- Faturamento Líquido (abatendo devoluções): ${formatBRL(totalFatDinamico)}\n- Locais de estoque: GALPÃO e ACESSÓRIOS\n- Período: ${String(diasUteisPeriodo).replace('.', ',')} dias úteis (descontando domingos e feriados)`);
+      alert(`Planilhas carregadas com sucesso!\n- Faturamento Líquido (abatendo devoluções): ${formatBRL(totalFatDinamico)}\n- Itens ativos (desconsiderando saldo zerado sem venda): ${parsedList.length} SKUs\n- Período: ${String(diasUteisPeriodo).replace('.', ',')} dias úteis`);
     }
 
     function generateGroupsFromProducts(products, totalGlobal) {
@@ -1075,7 +1072,7 @@
           <td class="py-3 px-3"><span class="bg-indigo-500/10 text-indigo-300 px-2 py-0.5 rounded text-[10px]">${p.Grupo}</span></td>
           <td class="py-3 px-3 text-right font-bold ${p.Faturamento < 0 ? 'text-rose-400' : 'text-emerald-400'}">${formatBRL(p.Faturamento)}</td>
           <td class="py-3 px-3 text-right font-mono text-cyan-400">${p.PrecoKg > 0 ? formatBRL(p.PrecoKg) + '/kg' : '-'}</td>
-          <td class="py-3 px-3 text-right font-mono">${p.Estoque ? p.Estoque.toLocaleString('pt-BR') : '-'}</td>
+          <td class="py-3 px-3 text-right font-mono">${p.Estoque > 0 ? p.Estoque.toLocaleString('pt-BR') : '0'}</td>
           <td class="py-3 px-3 text-right font-bold ${p.DiasCobertura > 90 ? 'text-rose-400' : 'text-emerald-400'}">${p.DiasCobertura === 999 ? 'Sem Giro' : p.DiasCobertura + ' dias'}</td>
           <td class="py-3 px-3 text-center"><span class="bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded text-[10px] font-bold">${p.CurvaABC || 'Curva C'}</span></td>
         </tr>
@@ -1192,7 +1189,6 @@
       html2pdf().set(opt).from(element).save();
     }
 
-    // EXPORTAÇÃO NATIVA EXCEL (.XLSX) - RANKING COMPLETO
     function exportToExcel() {
       if (!activeFilteredProducts || activeFilteredProducts.length === 0) {
         alert("Carregue as planilhas antes de exportar para Excel.");
@@ -1226,7 +1222,6 @@
       XLSX.writeFile(wb, 'Ranking_Produtos_Completo.xlsx');
     }
 
-    // EXPORTAÇÃO NATIVA EXCEL (.XLSX) - ESTOQUE PARADO (INCLUINDO COLUNA CUSTO)
     function exportDeadstockExcel() {
       const listToExport = displayedDeadstockList.length > 0 ? displayedDeadstockList : deadstockList;
       if (!listToExport || listToExport.length === 0) {
@@ -1257,7 +1252,6 @@
       XLSX.writeFile(wb, 'Relatorio_Estoque_Disponivel_Parado.xlsx');
     }
 
-    // Inicializa cálculo de dias úteis ao carregar a página
     window.addEventListener('DOMContentLoaded', () => {
       recalcularPeriodoDatas();
     });
