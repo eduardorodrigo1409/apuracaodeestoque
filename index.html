@@ -378,14 +378,19 @@
       <!-- TAB 3: CURVA ABC POR MARGEM -->
       <div id="content-curva-lucratividade" class="hidden space-y-6">
         <div class="glass-panel rounded-2xl p-5 border-l-4 border-emerald-500">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
             <div>
               <h3 class="font-bold text-emerald-400 text-base flex items-center gap-2">
                 <i class="fa-solid fa-sack-dollar"></i> Curva ABC por Margem de Lucratividade Bruta
               </h3>
               <p class="text-xs text-brand-muted">Ranking dos produtos pelo lucro real das vendas: <b>Faturamento - CMV (Qtd Vendida × Custo Unitário)</b>.</p>
             </div>
-            <span class="bg-emerald-500/20 text-emerald-300 text-xs px-3 py-1 rounded-full border border-emerald-500/30 font-semibold self-start sm:self-auto">Análise de Lucro Real</span>
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="bg-emerald-500/20 text-emerald-300 text-xs px-3 py-1.5 rounded-lg border border-emerald-500/30 font-semibold">Análise de Lucro Real</span>
+              <button onclick="exportCurvaLucratividadeExcel()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-1.5 rounded-lg font-semibold transition flex items-center gap-1.5 shadow">
+                <i class="fa-solid fa-file-excel"></i> Exportar Excel (.xlsx)
+              </button>
+            </div>
           </div>
 
           <div class="overflow-x-auto max-h-[500px]">
@@ -518,6 +523,7 @@
     let displayedDeadstockList = [];
     let activeFilteredProducts = [];
     let currentDisplayedProducts = [];
+    let curvaLucroList = [];
 
     let deadstockSortField = 'ValorEstoque';
     let deadstockSortOrder = 'desc';
@@ -827,7 +833,6 @@
         }
         p.PrecoKg = p['Peso (kg)'] > 0 ? (p.Faturamento / p['Peso (kg)']) : 0;
 
-        // Cálculo correto do CMV (Custo da Mercadoria Vendida)
         const baseQtdVendida = (p.Quantidade && p.Quantidade > 0) ? p.Quantidade : (p['Peso (kg)'] || 0);
         p.CMVVendido = baseQtdVendida * (p.CustoPosicao || 0);
         p.MargemBruta = p.Faturamento - p.CMVVendido;
@@ -1020,7 +1025,7 @@
       const totalLucroPositivo = listLucro.reduce((acc, p) => acc + (p.MargemBruta > 0 ? p.MargemBruta : 0), 0);
       let lucroAcumulado = 0;
 
-      tbody.innerHTML = listLucro.map((p, idx) => {
+      curvaLucroList = listLucro.map((p, idx) => {
         let classeLabel = 'Classe C';
         let badge = 'bg-slate-500/10 text-slate-300 border-slate-500/30';
 
@@ -1039,13 +1044,17 @@
           }
         }
 
+        return { ...p, PosicaoLucro: idx + 1, ClasseLucro: classeLabel, BadgeLucro: badge };
+      });
+
+      tbody.innerHTML = curvaLucroList.map(p => {
         const margemTextColor = p.MargemBruta < 0
           ? 'text-rose-400'
           : (p.MargemPct < 15 ? 'text-amber-400' : 'text-emerald-400');
 
         return `
           <tr class="hover:bg-brand-cardHover/60 transition">
-            <td class="py-3 px-3 text-brand-muted font-mono">${idx + 1}</td>
+            <td class="py-3 px-3 text-brand-muted font-mono">${p.PosicaoLucro}</td>
             <td class="py-3 px-3 text-brand-muted font-mono">${p.Código || '-'}</td>
             <td class="py-3 px-3 font-semibold text-white">${p.Produto}</td>
             <td class="py-3 px-3"><span class="bg-indigo-500/10 text-indigo-300 px-2 py-0.5 rounded text-[10px]">${p.Grupo}</span></td>
@@ -1053,10 +1062,39 @@
             <td class="py-3 px-3 text-right font-mono text-brand-muted">${formatBRL(p.CMVVendido)}</td>
             <td class="py-3 px-3 text-right font-bold ${margemTextColor}">${formatBRL(p.MargemBruta)}</td>
             <td class="py-3 px-3 text-right font-bold ${margemTextColor}">${p.MargemPct.toFixed(1)}%</td>
-            <td class="py-3 px-3 text-center"><span class="${badge} px-2 py-0.5 rounded text-[10px] font-bold border">${classeLabel}</span></td>
+            <td class="py-3 px-3 text-center"><span class="${p.BadgeLucro} px-2 py-0.5 rounded text-[10px] font-bold border">${p.ClasseLucro}</span></td>
           </tr>
         `;
       }).join('');
+    }
+
+    function exportCurvaLucratividadeExcel() {
+      if (!curvaLucroList || curvaLucroList.length === 0) {
+        alert("Carregue as planilhas antes de exportar a Curva ABC por Margem.");
+        return;
+      }
+
+      const rows = curvaLucroList.map(p => ({
+        'Posição': p.PosicaoLucro,
+        'Código': p.Código || '',
+        'Produto': p.Produto,
+        'Grupo': p.Grupo,
+        'Faturamento (R$)': Number((p.Faturamento || 0).toFixed(2)),
+        'CMV Vendido (R$)': Number((p.CMVVendido || 0).toFixed(2)),
+        'Margem Bruta (R$)': Number((p.MargemBruta || 0).toFixed(2)),
+        'Margem (%)': Number((p.MargemPct || 0).toFixed(2)),
+        'Curva Lucro': p.ClasseLucro
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(rows);
+      ws['!cols'] = [
+        { wch: 10 }, { wch: 12 }, { wch: 45 }, { wch: 24 },
+        { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 14 }, { wch: 16 }
+      ];
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Curva_ABC_Margem');
+      XLSX.writeFile(wb, 'Curva_ABC_Margem_Lucratividade.xlsx');
     }
 
     function renderTopGroupsList() {
