@@ -78,7 +78,7 @@
                 <span class="bg-indigo-500/20 text-indigo-400 text-[11px] px-2 py-0.5 rounded-full border border-indigo-500/30 font-medium hidden sm:inline-block">Locais: Galpão & Acessórios</span>
               </div>
               <p class="text-xs text-brand-muted" id="header-sub">
-                Análise alinhada ao Sankhya ERP (<span id="header-dias-label" class="text-amber-400 font-semibold">11</span> dias úteis — sem domingos e feriados)
+                Análise alinhada ao Sankhya ERP (<span id="header-dias-label" class="text-amber-400 font-semibold">11</span> dias úteis — sem domingos, feriados e sucata)
               </p>
             </div>
           </div>
@@ -246,7 +246,7 @@
           <i class="fa-solid fa-arrow-trend-up"></i> Curva ABC por Margem
         </button>
         <button onclick="switchTab('menos-vendidos')" id="tab-menos-vendidos" class="nav-tab px-4 py-2.5 text-brand-muted hover:text-white transition flex items-center gap-2 whitespace-nowrap">
-          <i class="fa-solid fa-arrow-down-short-wide text-amber-400"></i> Menos Vendidos
+          <i class="fa-solid fa-arrow-down-short-wide text-amber-400"></i> Menos Vendidos (Baixo Giro)
         </button>
         <button onclick="switchTab('tabela-produtos')" id="tab-tabela-produtos" class="nav-tab px-4 py-2.5 text-brand-muted hover:text-white transition flex items-center gap-2 whitespace-nowrap">
           <i class="fa-solid fa-list-check"></i> Detalhamento Completo (<span id="tab-count-items">0</span>)
@@ -415,10 +415,23 @@
         </div>
       </div>
 
-      <!-- TAB 4: MENOS VENDIDOS -->
+      <!-- TAB 4: MENOS VENDIDOS (BAIXO GIRO) -->
       <div id="content-menos-vendidos" class="hidden space-y-6">
+        
+        <!-- BLOCO 1: GRUPOS COM MENOR GIRO -->
         <div class="glass-panel rounded-2xl p-5 border-l-4 border-amber-500">
-          <h3 class="font-bold text-white text-base mb-4"><i class="fa-solid fa-layer-group text-amber-400 mr-2"></i> 10 Grupos Menos Vendidos</h3>
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <div>
+              <h3 class="font-bold text-white text-base flex items-center gap-2">
+                <i class="fa-solid fa-layer-group text-amber-400"></i> 10 Grupos com Menor Giro (Vendas &gt; R$ 0,00)
+              </h3>
+              <p class="text-xs text-brand-muted">Grupos que tiveram venda no período, comparados ao capital que ainda está parado em estoque (itens zerados ficam na aba Estoque Parado).</p>
+            </div>
+            <button onclick="exportBaixoGiroExcel()" class="bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 shadow self-start sm:self-auto">
+              <i class="fa-solid fa-file-excel"></i> Exportar Excel (.xlsx)
+            </button>
+          </div>
+
           <div class="overflow-x-auto">
             <table class="w-full text-left text-xs border-collapse">
               <thead>
@@ -426,8 +439,10 @@
                   <th class="py-3 px-3">Posição</th>
                   <th class="py-3 px-3">Grupo / Categoria</th>
                   <th class="py-3 px-3 text-right">Faturamento (R$)</th>
-                  <th class="py-3 px-3 text-right">Volume (kg)</th>
-                  <th class="py-3 px-3 text-center">SKUs Ativos</th>
+                  <th class="py-3 px-3 text-right">Share %</th>
+                  <th class="py-3 px-3 text-right">Estoque Disponível (R$)</th>
+                  <th class="py-3 px-3 text-right">Cobertura Média</th>
+                  <th class="py-3 px-3 text-center">Diagnóstico</th>
                 </tr>
               </thead>
               <tbody id="tableMenoresGrupos" class="divide-y divide-brand-border/40">
@@ -435,6 +450,37 @@
             </table>
           </div>
         </div>
+
+        <!-- BLOCO 2: PRODUTOS COM MENOR GIRO -->
+        <div class="glass-panel rounded-2xl p-5 border-l-4 border-orange-500">
+          <div class="mb-4">
+            <h3 class="font-bold text-white text-base flex items-center gap-2">
+              <i class="fa-solid fa-boxes-stacked text-orange-400"></i> Top 20 Produtos com Menor Giro (Cauda Longa com Venda)
+            </h3>
+            <p class="text-xs text-brand-muted">SKUs que venderam pouco no período, ordenados pelo menor faturamento para avaliar queima de estoque ou descontinuação.</p>
+          </div>
+
+          <div class="overflow-x-auto max-h-[460px]">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead class="sticky top-0 bg-[#0B0F17]">
+                <tr class="border-b border-brand-border text-brand-muted uppercase font-semibold">
+                  <th class="py-3 px-3">Código</th>
+                  <th class="py-3 px-3">Produto</th>
+                  <th class="py-3 px-3">Grupo</th>
+                  <th class="py-3 px-3 text-right">Qtd Vendida</th>
+                  <th class="py-3 px-3 text-right">Faturamento (R$)</th>
+                  <th class="py-3 px-3 text-right">Qtd Disponível</th>
+                  <th class="py-3 px-3 text-right">Valor Estoque (R$)</th>
+                  <th class="py-3 px-3 text-right">Cobertura (Dias)</th>
+                  <th class="py-3 px-3 text-center">Diagnóstico / Ação</th>
+                </tr>
+              </thead>
+              <tbody id="tableMenoresProdutos" class="divide-y divide-brand-border/40">
+              </tbody>
+            </table>
+          </div>
+        </div>
+
       </div>
 
       <!-- TAB 5: DETALHAMENTO DE PRODUTOS -->
@@ -525,6 +571,8 @@
     let activeFilteredProducts = [];
     let currentDisplayedProducts = [];
     let curvaLucroList = [];
+    let baixoGiroGruposList = [];
+    let baixoGiroProdutosList = [];
 
     let deadstockSortField = 'ValorEstoque';
     let deadstockSortOrder = 'desc';
@@ -791,6 +839,9 @@
 
             const cod = parseInt(row[colCod]) || 0;
             const grupo = String(row[colGrupo] || 'GERAL').trim().toUpperCase();
+
+            // Ignora SUCATA da análise (tanto por grupo quanto por descrição)
+            if (normalizeText(grupo).includes('SUCATA') || normalizeText(nome).includes('SUCATA')) return;
             
             let fat = colFat !== -1 ? parseNumericValue(row[colFat]) : 0;
             let peso = colPeso !== -1 ? parseNumericValue(row[colPeso]) : 0;
@@ -843,6 +894,7 @@
       }
 
       let parsedList = Object.values(itemMap).filter(p => {
+        if (normalizeText(p.Grupo).includes('SUCATA') || normalizeText(p.Produto).includes('SUCATA')) return false;
         const temEstoque = (p.Estoque || 0) > 0;
         const temVendaOuDevolucao = (p.Faturamento || 0) !== 0 || (p.Quantidade || 0) !== 0;
         return temEstoque || temVendaOuDevolucao;
@@ -857,6 +909,9 @@
         p['Posição'] = idx + 1;
         if ((!p.CustoPosicao || p.CustoPosicao === 0) && p.Estoque > 0 && p.ValorEstoque > 0) {
           p.CustoPosicao = p.ValorEstoque / p.Estoque;
+        }
+        if ((!p.ValorEstoque || p.ValorEstoque === 0) && p.Estoque > 0 && p.CustoPosicao > 0) {
+          p.ValorEstoque = p.Estoque * p.CustoPosicao;
         }
         p.PrecoKg = p['Peso (kg)'] > 0 ? (p.Faturamento / p['Peso (kg)']) : 0;
 
@@ -894,7 +949,7 @@
       populateCategoryDropdown();
       updateDashboardData();
       
-      alert(`Planilhas carregadas com sucesso!\n- Faturamento Líquido: ${formatBRL(totalFatDinamico)}\n- Itens ativos: ${parsedList.length} SKUs\n- Período: ${String(diasUteisPeriodo).replace('.', ',')} dias úteis`);
+      alert(`Planilhas carregadas com sucesso! (Sucata desconsiderada)\n- Faturamento Líquido: ${formatBRL(totalFatDinamico)}\n- Itens ativos: ${parsedList.length} SKUs\n- Período: ${String(diasUteisPeriodo).replace('.', ',')} dias úteis`);
     }
 
     function salvarBaseParaSimulador(lista) {
@@ -944,13 +999,27 @@
       products.forEach(p => {
         const gName = p.Grupo || 'OUTROS';
         const fat = p.Faturamento || 0;
-        if (!groupsMap[gName]) groupsMap[gName] = { name: gName, total: 0, weight: 0, skus: 0 };
+        const valEst = p.ValorEstoque || ((p.Estoque || 0) * (p.CustoPosicao || 0));
+        if (!groupsMap[gName]) {
+          groupsMap[gName] = { name: gName, total: 0, weight: 0, skus: 0, stockValue: 0, stockQty: 0, soldQty: 0 };
+        }
         groupsMap[gName].total += fat;
         groupsMap[gName].weight += (p['Peso (kg)'] || 0);
         groupsMap[gName].skus += 1;
+        groupsMap[gName].stockValue += valEst;
+        groupsMap[gName].stockQty += (p.Estoque || 0);
+        groupsMap[gName].soldQty += (p.Quantidade || 0);
       });
       return Object.values(groupsMap)
-        .map(g => ({ ...g, share: totalGlobal > 0 ? parseFloat(((g.total / totalGlobal) * 100).toFixed(1)) : 0 }))
+        .map(g => {
+          const vendaDiariaGrupo = g.soldQty / (diasUteisPeriodo || 1);
+          const coberturaGrupo = vendaDiariaGrupo > 0 ? Math.round(g.stockQty / vendaDiariaGrupo) : (g.stockQty > 0 ? 999 : 0);
+          return {
+            ...g,
+            coberturaDias: coberturaGrupo,
+            share: totalGlobal > 0 ? parseFloat(((g.total / totalGlobal) * 100).toFixed(2)) : 0
+          };
+        })
         .sort((a, b) => b.total - a.total);
     }
 
@@ -977,7 +1046,7 @@
         : 0;
 
       document.getElementById('kpi-faturamento').innerText = formatBRL(totalFat);
-      document.getElementById('kpi-sub-faturamento').innerText = `${rawGroups.length} grupos ativos (líquido de devoluções)`;
+      document.getElementById('kpi-sub-faturamento').innerText = `${rawGroups.length} grupos ativos (sem sucata)`;
       document.getElementById('kpi-peso').innerText = formatKG(totalWeight);
       document.getElementById('kpi-margem-kg').innerText = formatBRL(precoMedioKgGlobal) + '/kg';
       document.getElementById('kpi-estoque-parado-val').innerText = formatBRL(totalDeadstockVal);
@@ -1138,24 +1207,119 @@
           </div>
           <div class="text-right">
             <p class="font-bold text-white text-xs">${formatBRL(g.total)}</p>
-            <span class="text-[10px] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.2 rounded font-medium">${g.share}% share</span>
+            <span class="text-[10px] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.2 rounded font-medium">${g.share.toFixed(1)}% share</span>
           </div>
         </div>
       `).join('');
     }
 
     function renderMenoresTabelas() {
+      // Bloco 1: 10 grupos com menor giro (excluindo zerados e sucata)
       const tbodyGrupos = document.getElementById('tableMenoresGrupos');
-      const menosGrupos = [...rawGroups].reverse().slice(0, 10);
-      tbodyGrupos.innerHTML = menosGrupos.map((g, idx) => `
+      const gruposComVenda = rawGroups.filter(g => g.total > 0);
+      const menosGrupos = [...gruposComVenda].reverse().slice(0, 10);
+
+      baixoGiroGruposList = menosGrupos.map((g, idx) => {
+        const pos = gruposComVenda.length - idx;
+        let diag = 'Giro Controlado';
+        let diagBadge = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30';
+        if (g.coberturaDias > 90 && g.stockValue > 500) {
+          diag = 'Superestocado / Queima';
+          diagBadge = 'bg-rose-500/10 text-rose-400 border-rose-500/30';
+        } else if (g.stockValue > g.total * 2) {
+          diag = 'Estoque Alto p/ Venda';
+          diagBadge = 'bg-amber-500/10 text-amber-400 border-amber-500/30';
+        }
+        return { ...g, PosicaoGrupo: pos, Diagnostico: diag, DiagBadge: diagBadge };
+      });
+
+      tbodyGrupos.innerHTML = baixoGiroGruposList.map(g => `
         <tr class="hover:bg-brand-cardHover/60 transition">
-          <td class="py-3 px-3 font-mono text-brand-muted">${rawGroups.length - idx}º</td>
-          <td class="py-3 px-3 font-semibold text-white">${g.name}</td>
-          <td class="py-3 px-3 text-right font-bold text-rose-400">${formatBRL(g.total)}</td>
-          <td class="py-3 px-3 text-right font-mono">${formatKG(g.weight)}</td>
-          <td class="py-3 px-3 text-center font-bold text-indigo-400">${g.skus}</td>
+          <td class="py-3 px-3 font-mono text-brand-muted">${g.PosicaoGrupo}º</td>
+          <td class="py-3 px-3 font-semibold text-white">${g.name} <span class="text-[10px] text-brand-muted ml-1">(${g.skus} SKUs)</span></td>
+          <td class="py-3 px-3 text-right font-bold text-amber-400">${formatBRL(g.total)}</td>
+          <td class="py-3 px-3 text-right font-mono text-brand-muted">${g.share.toFixed(2)}%</td>
+          <td class="py-3 px-3 text-right font-mono text-cyan-400">${formatBRL(g.stockValue)}</td>
+          <td class="py-3 px-3 text-right font-bold ${g.coberturaDias > 90 ? 'text-rose-400' : 'text-white'}">${g.coberturaDias === 999 ? 'Sem Estoque' : g.coberturaDias + ' dias'}</td>
+          <td class="py-3 px-3 text-center"><span class="${g.DiagBadge} px-2 py-0.5 rounded text-[10px] font-bold border">${g.Diagnostico}</span></td>
         </tr>
       `).join('');
+
+      // Bloco 2: Top 20 produtos com menor giro (vendas > 0, sem sucata)
+      const tbodyProds = document.getElementById('tableMenoresProdutos');
+      const prodsComVenda = rawProducts.filter(p => p.Faturamento > 0);
+      const menosProds = [...prodsComVenda].sort((a, b) => a.Faturamento - b.Faturamento).slice(0, 20);
+
+      baixoGiroProdutosList = menosProds.map(p => {
+        const valEst = p.ValorEstoque || ((p.Estoque || 0) * (p.CustoPosicao || 0));
+        let acao = 'Monitorar Reposição';
+        let acaoBadge = 'bg-slate-500/10 text-slate-300 border-slate-500/30';
+        if (p.Estoque > 0 && p.DiasCobertura > 90) {
+          acao = 'Superestocado — Ofertar Combo';
+          acaoBadge = 'bg-rose-500/10 text-rose-400 border-rose-500/30';
+        } else if (p.Estoque === 0) {
+          acao = 'Sob Encomenda (Estoque Zero)';
+          acaoBadge = 'bg-indigo-500/10 text-indigo-300 border-indigo-500/30';
+        } else {
+          acao = 'Baixa Demanda — Não Recomprar';
+          acaoBadge = 'bg-amber-500/10 text-amber-400 border-amber-500/30';
+        }
+        return { ...p, ValEstCalc: valEst, AcaoBaixoGiro: acao, AcaoBadge: acaoBadge };
+      });
+
+      tbodyProds.innerHTML = baixoGiroProdutosList.map(p => `
+        <tr class="hover:bg-brand-cardHover/60 transition">
+          <td class="py-3 px-3 font-mono text-brand-muted">${p.Código || '-'}</td>
+          <td class="py-3 px-3 font-semibold text-white">${p.Produto}</td>
+          <td class="py-3 px-3"><span class="bg-indigo-500/10 text-indigo-300 px-2 py-0.5 rounded text-[10px]">${p.Grupo}</span></td>
+          <td class="py-3 px-3 text-right font-mono text-indigo-300">${formatUnidadesVendidas(p)}</td>
+          <td class="py-3 px-3 text-right font-bold text-amber-400">${formatBRL(p.Faturamento)}</td>
+          <td class="py-3 px-3 text-right font-mono">${p.Estoque > 0 ? p.Estoque.toLocaleString('pt-BR') : '0'}</td>
+          <td class="py-3 px-3 text-right font-mono text-cyan-400">${formatBRL(p.ValEstCalc)}</td>
+          <td class="py-3 px-3 text-right font-bold ${p.DiasCobertura > 90 ? 'text-rose-400' : 'text-emerald-400'}">${p.Estoque === 0 ? '0 dias' : (p.DiasCobertura === 999 ? '999+ dias' : p.DiasCobertura + ' dias')}</td>
+          <td class="py-3 px-3 text-center"><span class="${p.AcaoBadge} px-2 py-0.5 rounded text-[10px] font-bold border">${p.AcaoBaixoGiro}</span></td>
+        </tr>
+      `).join('');
+    }
+
+    function exportBaixoGiroExcel() {
+      if ((!baixoGiroGruposList || baixoGiroGruposList.length === 0) && (!baixoGiroProdutosList || baixoGiroProdutosList.length === 0)) {
+        alert("Carregue as planilhas antes de exportar os itens de Baixo Giro.");
+        return;
+      }
+
+      const wb = XLSX.utils.book_new();
+
+      const rowsGrupos = baixoGiroGruposList.map(g => ({
+        'Posição': g.PosicaoGrupo,
+        'Grupo / Categoria': g.name,
+        'SKUs Ativos': g.skus,
+        'Faturamento (R$)': Number((g.total || 0).toFixed(2)),
+        'Share (%)': Number((g.share || 0).toFixed(2)),
+        'Estoque Disponível (R$)': Number((g.stockValue || 0).toFixed(2)),
+        'Cobertura Média (Dias)': g.coberturaDias,
+        'Diagnóstico': g.Diagnostico
+      }));
+      const wsGrupos = XLSX.utils.json_to_sheet(rowsGrupos);
+      wsGrupos['!cols'] = [{ wch: 10 }, { wch: 28 }, { wch: 14 }, { wch: 18 }, { wch: 12 }, { wch: 22 }, { wch: 22 }, { wch: 26 }];
+      XLSX.utils.book_append_sheet(wb, wsGrupos, 'Grupos_Baixo_Giro');
+
+      const rowsProds = baixoGiroProdutosList.map(p => ({
+        'Código': p.Código || '',
+        'Produto': p.Produto,
+        'Grupo': p.Grupo,
+        'Qtd Vendida (Un)': Number((p.Quantidade || 0).toFixed(2)),
+        'Faturamento (R$)': Number((p.Faturamento || 0).toFixed(2)),
+        'Qtd Disponível': Number((p.Estoque || 0).toFixed(2)),
+        'Valor Estoque (R$)': Number((p.ValEstCalc || 0).toFixed(2)),
+        'Cobertura (Dias)': p.Estoque === 0 ? 0 : p.DiasCobertura,
+        'Diagnóstico / Ação': p.AcaoBaixoGiro
+      }));
+      const wsProds = XLSX.utils.json_to_sheet(rowsProds);
+      wsProds['!cols'] = [{ wch: 12 }, { wch: 45 }, { wch: 24 }, { wch: 16 }, { wch: 18 }, { wch: 16 }, { wch: 20 }, { wch: 18 }, { wch: 30 }];
+      XLSX.utils.book_append_sheet(wb, wsProds, 'Produtos_Baixo_Giro');
+
+      XLSX.writeFile(wb, 'Relatorio_Menos_Vendidos_Baixo_Giro.xlsx');
     }
 
     function renderProductsTable(products) {
