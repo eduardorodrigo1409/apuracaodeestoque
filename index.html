@@ -78,7 +78,7 @@
                 <span class="bg-indigo-500/20 text-indigo-400 text-[11px] px-2 py-0.5 rounded-full border border-indigo-500/30 font-medium hidden sm:inline-block">Locais: Galpão & Acessórios</span>
               </div>
               <p class="text-xs text-brand-muted" id="header-sub">
-                Análise alinhada ao Sankhya ERP (<span id="header-dias-label" class="text-amber-400 font-semibold">11</span> dias úteis — sem domingos, feriados e sucata)
+                Análise alinhada ao Sankhya ERP (<span id="header-dias-label" class="text-amber-400 font-semibold">11</span> dias úteis — sem domingos, feriados, sucata e Bobina CA 60)
               </p>
             </div>
           </div>
@@ -425,7 +425,7 @@
               <h3 class="font-bold text-white text-base flex items-center gap-2">
                 <i class="fa-solid fa-layer-group text-amber-400"></i> 10 Grupos com Menor Giro (Vendas &gt; R$ 0,00)
               </h3>
-              <p class="text-xs text-brand-muted">Grupos que tiveram venda no período, comparados ao capital que ainda está parado em estoque (itens zerados ficam na aba Estoque Parado).</p>
+              <p class="text-xs text-brand-muted">Clique em qualquer grupo abaixo para expandir e visualizar os SKUs que compõem o grupo e seu saldo em estoque.</p>
             </div>
             <button onclick="exportBaixoGiroExcel()" class="bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 shadow self-start sm:self-auto">
               <i class="fa-solid fa-file-excel"></i> Exportar Excel (.xlsx)
@@ -579,6 +579,15 @@
       2221, 2218, 2240, 1491, 1491, 1492, 2239, 1498
     ]);
 
+    function isItemOuGrupoIgnorado(grupo, produto) {
+      const gNorm = normalizeText(grupo).replace(/[-_]/g, ' ');
+      const pNorm = normalizeText(produto).replace(/[-_]/g, ' ');
+      if (gNorm.includes('SUCATA') || pNorm.includes('SUCATA')) return true;
+      if (gNorm.includes('BOBINA CA 60') || gNorm.includes('BOBINA CA60')) return true;
+      if (pNorm.includes('BOBINA CA 60') || pNorm.includes('BOBINA CA60')) return true;
+      return false;
+    }
+
     let rawProducts = [];
     let rawGroups = [];
     let deadstockList = [];
@@ -588,6 +597,7 @@
     let curvaLucroList = [];
     let baixoGiroGruposList = [];
     let baixoGiroProdutosList = [];
+    let expandedMenoresGrupos = new Set();
 
     let deadstockSortField = 'ValorEstoque';
     let deadstockSortOrder = 'desc';
@@ -854,17 +864,15 @@
             const cod = parseInt(row[colCod]) || 0;
             const grupo = String(row[colGrupo] || 'GERAL').trim().toUpperCase();
 
-            // Ignora SUCATA da análise (tanto por grupo quanto por descrição)
-            if (normalizeText(grupo).includes('SUCATA') || normalizeText(nome).includes('SUCATA')) return;
+            // Ignora SUCATA e BOBINA CA 60 da análise
+            if (isItemOuGrupoIgnorado(grupo, nome)) return;
 
             // Filtro de Local de Estoque
             if (colLocal !== -1) {
               const localNorm = normalizeText(row[colLocal]);
               if (CODIGOS_SOMENTE_ACESSORIOS.has(cod)) {
-                // Para estes códigos, considerar EXCLUSIVAMENTE o local ACESSÓRIOS e ignorar GALPÃO
                 if (localNorm !== 'ACESSORIOS') return;
               } else {
-                // Para os demais códigos, considerar GALPÃO e ACESSÓRIOS
                 if (localNorm !== 'GALPAO' && localNorm !== 'ACESSORIOS') return;
               }
             }
@@ -902,6 +910,10 @@
               itemMap[key].Quantidade += qtd;
               itemMap[key]['Peso (kg)'] += peso;
 
+              if (grupo !== 'GERAL' && itemMap[key].Grupo === 'GERAL') {
+                itemMap[key].Grupo = grupo;
+              }
+
               if (custoVenda > 0) itemMap[key].CustoVenda = custoVenda;
               if (cmvUnit > 0) itemMap[key].CMVUnit = cmvUnit;
 
@@ -920,7 +932,7 @@
       }
 
       let parsedList = Object.values(itemMap).filter(p => {
-        if (normalizeText(p.Grupo).includes('SUCATA') || normalizeText(p.Produto).includes('SUCATA')) return false;
+        if (isItemOuGrupoIgnorado(p.Grupo, p.Produto)) return false;
         const temEstoque = (p.Estoque || 0) !== 0;
         const temVendaOuDevolucao = (p.Faturamento || 0) !== 0 || (p.Quantidade || 0) !== 0;
         return temEstoque || temVendaOuDevolucao;
@@ -973,13 +985,14 @@
       rawGroups = generateGroupsFromProducts(rawProducts, totalFatDinamico);
       activeFilteredProducts = [...rawProducts];
       currentDisplayedProducts = [...rawProducts];
+      expandedMenoresGrupos.clear();
 
       salvarBaseParaSimulador(rawProducts);
 
       populateCategoryDropdown();
       updateDashboardData();
       
-      alert(`Planilhas carregadas com sucesso! (Sucata desconsiderada | Códigos de Acessórios filtrados)\n- Faturamento Líquido: ${formatBRL(totalFatDinamico)}\n- Itens ativos: ${parsedList.length} SKUs\n- Período: ${String(diasUteisPeriodo).replace('.', ',')} dias úteis`);
+      alert(`Planilhas carregadas com sucesso! (Sucata e Bobina CA 60 desconsideradas)\n- Faturamento Líquido: ${formatBRL(totalFatDinamico)}\n- Itens ativos: ${parsedList.length} SKUs\n- Período: ${String(diasUteisPeriodo).replace('.', ',')} dias úteis`);
     }
 
     function salvarBaseParaSimulador(lista) {
@@ -1076,7 +1089,7 @@
         : 0;
 
       document.getElementById('kpi-faturamento').innerText = formatBRL(totalFat);
-      document.getElementById('kpi-sub-faturamento').innerText = `${rawGroups.length} grupos ativos (sem sucata)`;
+      document.getElementById('kpi-sub-faturamento').innerText = `${rawGroups.length} grupos ativos (sem sucata e Bobina CA 60)`;
       document.getElementById('kpi-peso').innerText = formatKG(totalWeight);
       document.getElementById('kpi-margem-kg').innerText = formatBRL(precoMedioKgGlobal) + '/kg';
       document.getElementById('kpi-estoque-parado-val').innerText = formatBRL(totalDeadstockVal);
@@ -1243,9 +1256,105 @@
       `).join('');
     }
 
-    function renderMenoresTabelas() {
-      // Bloco 1: 10 grupos com menor giro (excluindo zerados e sucata)
+    function toggleGrupoMenores(groupName) {
+      if (expandedMenoresGrupos.has(groupName)) {
+        expandedMenoresGrupos.delete(groupName);
+      } else {
+        expandedMenoresGrupos.add(groupName);
+      }
+      renderMenoresGruposRows();
+    }
+
+    function renderMenoresGruposRows() {
       const tbodyGrupos = document.getElementById('tableMenoresGrupos');
+      if (!tbodyGrupos) return;
+
+      tbodyGrupos.innerHTML = baixoGiroGruposList.map(g => {
+        const isExpanded = expandedMenoresGrupos.has(g.name);
+        const safeGroupName = g.name.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        const skusDoGrupo = rawProducts
+          .filter(p => p.Grupo === g.name)
+          .sort((a, b) => a.Faturamento - b.Faturamento);
+
+        let subTableHtml = '';
+        if (isExpanded) {
+          const skuRows = skusDoGrupo.map(sku => {
+            const valEstSku = sku.ValorEstoque !== 0 ? sku.ValorEstoque : ((sku.Estoque || 0) * (sku.CustoPosicao || 0));
+            const semVenda = (sku.Faturamento || 0) <= 0;
+            const statusSku = semVenda
+              ? `<span class="bg-rose-500/15 text-rose-300 border border-rose-500/30 px-2 py-0.5 rounded text-[10px] font-semibold">Sem Venda (Parado)</span>`
+              : `<span class="bg-amber-500/15 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded text-[10px] font-semibold">Baixo Giro</span>`;
+
+            return `
+              <tr class="border-b border-brand-border/30 last:border-none hover:bg-brand-card/70 transition">
+                <td class="py-2 px-3 font-mono text-brand-muted">${sku.Código || '-'}</td>
+                <td class="py-2 px-3 font-medium text-white">${sku.Produto}</td>
+                <td class="py-2 px-3 text-right font-mono text-indigo-300">${formatUnidadesVendidas(sku)}</td>
+                <td class="py-2 px-3 text-right font-bold ${semVenda ? 'text-brand-muted' : 'text-amber-400'}">${formatBRL(sku.Faturamento)}</td>
+                <td class="py-2 px-3 text-right font-mono ${sku.Estoque < 0 ? 'text-rose-400 font-bold' : 'text-white'}">${sku.Estoque.toLocaleString('pt-BR')}</td>
+                <td class="py-2 px-3 text-right font-mono ${valEstSku < 0 ? 'text-rose-400' : 'text-cyan-400'}">${formatBRL(valEstSku)}</td>
+                <td class="py-2 px-3 text-right font-bold ${sku.DiasCobertura > 90 ? 'text-rose-400' : 'text-emerald-400'}">${sku.Estoque <= 0 ? '0 dias' : (sku.DiasCobertura === 999 ? 'Sem Giro' : sku.DiasCobertura + ' dias')}</td>
+                <td class="py-2 px-3 text-center">${statusSku}</td>
+              </tr>
+            `;
+          }).join('');
+
+          subTableHtml = `
+            <tr class="bg-[#0B0F17]/95">
+              <td colspan="7" class="p-3 pl-8 pr-4 border-l-2 border-amber-500/70">
+                <div class="rounded-xl border border-brand-border/70 bg-brand-card/40 overflow-x-auto">
+                  <div class="px-3 py-2 bg-brand-bg/80 border-b border-brand-border/60 flex items-center justify-between text-[11px]">
+                    <span class="font-semibold text-amber-300">
+                      <i class="fa-solid fa-boxes-stacked mr-1.5"></i> SKUs do grupo ${g.name} (${skusDoGrupo.length} itens — ordenados do menor para o maior faturamento)
+                    </span>
+                    <span class="text-brand-muted">Clique no grupo novamente para recolher</span>
+                  </div>
+                  <table class="w-full text-left text-[11px] border-collapse">
+                    <thead>
+                      <tr class="border-b border-brand-border/60 text-brand-muted uppercase font-semibold bg-brand-bg/40">
+                        <th class="py-2 px-3">Código</th>
+                        <th class="py-2 px-3">Descrição do SKU</th>
+                        <th class="py-2 px-3 text-right">Qtd Vendida</th>
+                        <th class="py-2 px-3 text-right">Faturamento (R$)</th>
+                        <th class="py-2 px-3 text-right">Qtd Disponível</th>
+                        <th class="py-2 px-3 text-right">Valor Estoque (R$)</th>
+                        <th class="py-2 px-3 text-right">Cobertura</th>
+                        <th class="py-2 px-3 text-center">Status SKU</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${skuRows}
+                    </tbody>
+                  </table>
+                </div>
+              </td>
+            </tr>
+          `;
+        }
+
+        return `
+          <tr onclick="toggleGrupoMenores('${safeGroupName}')" class="hover:bg-brand-cardHover/80 transition cursor-pointer select-none ${isExpanded ? 'bg-brand-cardHover/60' : ''}">
+            <td class="py-3 px-3 font-mono text-brand-muted">${g.PosicaoGrupo}º</td>
+            <td class="py-3 px-3 font-semibold text-white">
+              <div class="flex items-center gap-2">
+                <i class="fa-solid ${isExpanded ? 'fa-chevron-down text-amber-400' : 'fa-chevron-right text-brand-muted'} text-[11px] w-3 transition-transform"></i>
+                <span>${g.name}</span>
+                <span class="text-[10px] text-amber-300/90 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded">${g.skus} SKUs ${isExpanded ? '▲' : '▼'}</span>
+              </div>
+            </td>
+            <td class="py-3 px-3 text-right font-bold text-amber-400">${formatBRL(g.total)}</td>
+            <td class="py-3 px-3 text-right font-mono text-brand-muted">${g.share.toFixed(2)}%</td>
+            <td class="py-3 px-3 text-right font-mono ${g.stockValue < 0 ? 'text-rose-400' : 'text-cyan-400'}">${formatBRL(g.stockValue)}</td>
+            <td class="py-3 px-3 text-right font-bold ${g.coberturaDias > 90 ? 'text-rose-400' : 'text-white'}">${g.stockQty <= 0 ? '0 dias' : (g.coberturaDias === 999 ? 'Sem Estoque' : g.coberturaDias + ' dias')}</td>
+            <td class="py-3 px-3 text-center"><span class="${g.DiagBadge} px-2 py-0.5 rounded text-[10px] font-bold border">${g.Diagnostico}</span></td>
+          </tr>
+          ${subTableHtml}
+        `;
+      }).join('');
+    }
+
+    function renderMenoresTabelas() {
+      // Bloco 1: 10 grupos com menor giro (excluindo zerados, sucata e Bobina CA 60)
       const gruposComVenda = rawGroups.filter(g => g.total > 0);
       const menosGrupos = [...gruposComVenda].reverse().slice(0, 10);
 
@@ -1266,19 +1375,9 @@
         return { ...g, PosicaoGrupo: pos, Diagnostico: diag, DiagBadge: diagBadge };
       });
 
-      tbodyGrupos.innerHTML = baixoGiroGruposList.map(g => `
-        <tr class="hover:bg-brand-cardHover/60 transition">
-          <td class="py-3 px-3 font-mono text-brand-muted">${g.PosicaoGrupo}º</td>
-          <td class="py-3 px-3 font-semibold text-white">${g.name} <span class="text-[10px] text-brand-muted ml-1">(${g.skus} SKUs)</span></td>
-          <td class="py-3 px-3 text-right font-bold text-amber-400">${formatBRL(g.total)}</td>
-          <td class="py-3 px-3 text-right font-mono text-brand-muted">${g.share.toFixed(2)}%</td>
-          <td class="py-3 px-3 text-right font-mono ${g.stockValue < 0 ? 'text-rose-400' : 'text-cyan-400'}">${formatBRL(g.stockValue)}</td>
-          <td class="py-3 px-3 text-right font-bold ${g.coberturaDias > 90 ? 'text-rose-400' : 'text-white'}">${g.stockQty <= 0 ? '0 dias' : (g.coberturaDias === 999 ? 'Sem Estoque' : g.coberturaDias + ' dias')}</td>
-          <td class="py-3 px-3 text-center"><span class="${g.DiagBadge} px-2 py-0.5 rounded text-[10px] font-bold border">${g.Diagnostico}</span></td>
-        </tr>
-      `).join('');
+      renderMenoresGruposRows();
 
-      // Bloco 2: Top 20 produtos com menor giro (vendas > 0, sem sucata)
+      // Bloco 2: Top 20 produtos com menor giro (vendas > 0, sem sucata e Bobina CA 60)
       const tbodyProds = document.getElementById('tableMenoresProdutos');
       const prodsComVenda = rawProducts.filter(p => p.Faturamento > 0);
       const menosProds = [...prodsComVenda].sort((a, b) => a.Faturamento - b.Faturamento).slice(0, 20);
@@ -1339,6 +1438,24 @@
       const wsGrupos = XLSX.utils.json_to_sheet(rowsGrupos);
       wsGrupos['!cols'] = [{ wch: 10 }, { wch: 28 }, { wch: 14 }, { wch: 18 }, { wch: 12 }, { wch: 22 }, { wch: 22 }, { wch: 26 }];
       XLSX.utils.book_append_sheet(wb, wsGrupos, 'Grupos_Baixo_Giro');
+
+      const nomesGruposBaixoGiro = new Set(baixoGiroGruposList.map(g => g.name));
+      const rowsSkusDosGrupos = rawProducts
+        .filter(p => nomesGruposBaixoGiro.has(p.Grupo))
+        .sort((a, b) => a.Grupo.localeCompare(b.Grupo) || a.Faturamento - b.Faturamento)
+        .map(p => ({
+          'Grupo': p.Grupo,
+          'Código': p.Código || '',
+          'SKU / Produto': p.Produto,
+          'Qtd Vendida (Un)': Number((p.Quantidade || 0).toFixed(2)),
+          'Faturamento (R$)': Number((p.Faturamento || 0).toFixed(2)),
+          'Qtd Disponível': Number((p.Estoque || 0).toFixed(2)),
+          'Valor Estoque (R$)': Number((p.ValorEstoque || 0).toFixed(2)),
+          'Cobertura (Dias)': p.Estoque <= 0 ? 0 : (p.DiasCobertura === 999 ? 'Sem Giro' : p.DiasCobertura)
+        }));
+      const wsSkusGrupos = XLSX.utils.json_to_sheet(rowsSkusDosGrupos);
+      wsSkusGrupos['!cols'] = [{ wch: 24 }, { wch: 12 }, { wch: 45 }, { wch: 16 }, { wch: 18 }, { wch: 16 }, { wch: 20 }, { wch: 18 }];
+      XLSX.utils.book_append_sheet(wb, wsSkusGrupos, 'SKUs_dos_Grupos');
 
       const rowsProds = baixoGiroProdutosList.map(p => ({
         'Código': p.Código || '',
