@@ -78,7 +78,7 @@
                 <span class="bg-indigo-500/20 text-indigo-400 text-[11px] px-2 py-0.5 rounded-full border border-indigo-500/30 font-medium hidden sm:inline-block">Locais: Galpão & Acessórios</span>
               </div>
               <p class="text-xs text-brand-muted" id="header-sub">
-                Análise alinhada ao Sankhya ERP (<span id="header-dias-label" class="text-amber-400 font-semibold">11</span> dias úteis — sem domingos, feriados, sucata e Bobina CA 60)
+                Análise alinhada ao Sankhya ERP (<span id="header-dias-label" class="text-amber-400 font-semibold">11</span> dias úteis — <span id="header-filtro-label">base completa alinhada ao Sankhya</span>)
               </p>
             </div>
           </div>
@@ -89,6 +89,18 @@
         </div>
 
         <div class="flex flex-wrap items-center gap-2 w-full xl:w-auto">
+          <!-- TOGGLE SUCATA E BOBINA CA 60 -->
+          <label class="flex items-center gap-1.5 bg-brand-bg/90 border border-brand-border hover:border-indigo-500/50 px-2.5 py-1.5 rounded-lg cursor-pointer select-none transition" title="Ative para bater 100% com o faturamento e peso geral do Sankhya">
+            <input 
+              type="checkbox" 
+              id="toggleSucataBobina" 
+              checked 
+              onchange="aplicarFiltrosBase()"
+              class="accent-emerald-500 w-3.5 h-3.5 rounded cursor-pointer"
+            >
+            <span class="text-[11px] font-semibold text-brand-text whitespace-nowrap">Incluir Sucata e Bobina CA 60</span>
+          </label>
+
           <!-- SELETOR DE PERÍODO (DATA INICIAL E DATA FINAL) -->
           <div class="flex flex-wrap items-center gap-2 bg-brand-bg/90 border border-brand-border px-2.5 py-1 rounded-lg">
             <div class="flex items-center gap-1">
@@ -106,13 +118,13 @@
               <input 
                 type="date" 
                 id="dataFinalInput" 
-                value="2026-11-15" 
+                value="2026-11-16" 
                 onchange="recalcularPeriodoDatas()"
                 class="bg-transparent text-white font-semibold text-xs focus:outline-none border-b border-amber-500/40 focus:border-amber-400"
               >
             </div>
             <span id="badgeDiasUteis" class="bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[11px] font-bold px-2 py-0.5 rounded whitespace-nowrap" title="Segunda a Sexta = 1 dia | Sábado = 0,5 dia | Domingos e Feriados = 0">
-              11 dias úteis
+              11,5 dias úteis
             </span>
           </div>
 
@@ -173,7 +185,7 @@
           <div class="mt-3 w-full bg-brand-bg rounded-full h-1.5 overflow-hidden">
             <div class="bg-gradient-to-r from-emerald-500 to-teal-400 h-1.5 rounded-full" style="width: 100%"></div>
           </div>
-          <p class="text-[11px] text-brand-muted mt-2" id="kpi-sub-faturamento">vendas confirmadas (líquido de devoluções)</p>
+          <p class="text-[11px] text-brand-muted mt-2" id="kpi-sub-faturamento">vendas confirmadas (base completa Sankhya)</p>
         </div>
 
         <div class="glass-card rounded-2xl p-5 transition-all">
@@ -230,7 +242,7 @@
           <div class="mt-3 w-full bg-brand-bg rounded-full h-1.5 overflow-hidden">
             <div class="bg-gradient-to-r from-amber-500 to-orange-500 h-1.5 rounded-full" style="width: 65%"></div>
           </div>
-          <p class="text-[11px] text-brand-muted mt-2" id="kpi-sub-cobertura">Autonomia baseada no ritmo de 11 dias úteis</p>
+          <p class="text-[11px] text-brand-muted mt-2" id="kpi-sub-cobertura">Autonomia baseada no ritmo de 11,5 dias úteis</p>
         </div>
       </section>
 
@@ -579,7 +591,7 @@
       2221, 2218, 2240, 1491, 1491, 1492, 2239, 1498
     ]);
 
-    function isItemOuGrupoIgnorado(grupo, produto) {
+    function isSucataOuBobinaCA60(grupo, produto) {
       const gNorm = normalizeText(grupo).replace(/[-_]/g, ' ');
       const pNorm = normalizeText(produto).replace(/[-_]/g, ' ');
       if (gNorm.includes('SUCATA') || pNorm.includes('SUCATA')) return true;
@@ -588,6 +600,7 @@
       return false;
     }
 
+    let allUploadedProducts = [];
     let rawProducts = [];
     let rawGroups = [];
     let deadstockList = [];
@@ -607,7 +620,7 @@
     let barChartInstance = null;
     let compChartInstance = null;
 
-    let diasUteisPeriodo = 11;
+    let diasUteisPeriodo = 11.5;
 
     const formatBRL = (val) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val || 0);
     const formatKG = (val) => new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val || 0) + ' kg';
@@ -693,7 +706,7 @@
     }
 
     function calcularDiasUteisEntreDatas(dataIniStr, dataFimStr) {
-      if (!dataIniStr || !dataFimStr) return 11;
+      if (!dataIniStr || !dataFimStr) return 11.5;
       const [y1, m1, d1] = dataIniStr.split('-').map(Number);
       const [y2, m2, d2] = dataFimStr.split('-').map(Number);
       const start = new Date(y1, m1 - 1, d1);
@@ -734,17 +747,8 @@
       document.getElementById('header-dias-label').innerText = formattedDias;
       document.getElementById('kpi-sub-cobertura').innerText = `Autonomia baseada no ritmo de ${formattedDias} dias úteis`;
 
-      if (rawProducts.length > 0) {
-        rawProducts.forEach(p => {
-          const vendaDiariaQtd = (p.Quantidade || 0) / diasUteisPeriodo;
-          if ((p.Estoque || 0) <= 0) {
-            p.DiasCobertura = 0;
-          } else {
-            p.DiasCobertura = vendaDiariaQtd > 0 ? Math.round(p.Estoque / vendaDiariaQtd) : 999;
-          }
-        });
-        salvarBaseParaSimulador(rawProducts);
-        updateDashboardData();
+      if (allUploadedProducts.length > 0) {
+        aplicarFiltrosBase(false);
       }
     }
 
@@ -789,6 +793,82 @@
 
     function normalizeText(str) {
       return String(str || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().trim();
+    }
+
+    function aplicarFiltrosBase(showAlert = false) {
+      const incluirSucataBobina = document.getElementById('toggleSucataBobina').checked;
+
+      document.getElementById('header-filtro-label').innerText = incluirSucataBobina
+        ? 'base completa alinhada ao Sankhya'
+        : 'sem sucata e Bobina CA 60';
+
+      let parsedList = allUploadedProducts
+        .filter(p => {
+          if (!incluirSucataBobina && isSucataOuBobinaCA60(p.Grupo, p.Produto)) return false;
+          const temEstoque = (p.Estoque || 0) !== 0;
+          const temVendaOuDevolucao = (p.Faturamento || 0) !== 0 || (p.Quantidade || 0) !== 0 || (p['Peso (kg)'] || 0) !== 0;
+          return temEstoque || temVendaOuDevolucao;
+        })
+        .map(p => ({ ...p }));
+
+      parsedList.sort((a, b) => b.Faturamento - a.Faturamento);
+
+      const totalFatDinamico = parsedList.reduce((acc, p) => acc + (p.Faturamento || 0), 0);
+      let acum = 0;
+
+      parsedList.forEach((p, idx) => {
+        p['Posição'] = idx + 1;
+        if ((!p.CustoPosicao || p.CustoPosicao === 0) && p.Estoque !== 0 && p.ValorEstoque !== 0) {
+          p.CustoPosicao = p.ValorEstoque / p.Estoque;
+        }
+        if ((!p.ValorEstoque || p.ValorEstoque === 0) && p.Estoque !== 0 && p.CustoPosicao > 0) {
+          p.ValorEstoque = p.Estoque * p.CustoPosicao;
+        }
+        p.PrecoKg = p['Peso (kg)'] > 0 ? (p.Faturamento / p['Peso (kg)']) : 0;
+
+        const baseQtdVendida = (p.Quantidade && p.Quantidade > 0) ? p.Quantidade : (p['Peso (kg)'] || 0);
+        const custoUnitCalculo = p.CMVUnit > 0 ? p.CMVUnit : (p.CustoVenda > 0 ? p.CustoVenda : (p.CustoPosicao || 0));
+        p.CMVVendido = baseQtdVendida * custoUnitCalculo;
+        p.MargemBruta = p.Faturamento - p.CMVVendido;
+        p.MargemPct = p.Faturamento > 0 ? ((p.MargemBruta / p.Faturamento) * 100) : 0;
+
+        const vendaDiariaQtd = (p.Quantidade || 0) / (diasUteisPeriodo || 1);
+        if ((p.Estoque || 0) <= 0) {
+          p.DiasCobertura = 0;
+        } else {
+          p.DiasCobertura = vendaDiariaQtd > 0 ? Math.round(p.Estoque / vendaDiariaQtd) : 999;
+        }
+
+        if (p.Faturamento <= 0) {
+          p.CurvaABC = 'Sem Saída';
+        } else {
+          acum += p.Faturamento;
+          const pct = (acum / (totalFatDinamico || 1)) * 100;
+          if (pct <= 70) p.CurvaABC = 'Curva A';
+          else if (pct <= 90) p.CurvaABC = 'Curva B';
+          else p.CurvaABC = 'Curva C';
+        }
+      });
+
+      deadstockList = parsedList.filter(p => p.Estoque > 0 && p.Faturamento <= 0);
+      deadstockList.sort((a, b) => b.ValorEstoque - a.ValorEstoque);
+      displayedDeadstockList = [...deadstockList];
+
+      rawProducts = parsedList;
+      rawGroups = generateGroupsFromProducts(rawProducts, totalFatDinamico);
+      activeFilteredProducts = [...rawProducts];
+      currentDisplayedProducts = [...rawProducts];
+      expandedMenoresGrupos.clear();
+      expandedTopGrupos.clear();
+
+      salvarBaseParaSimulador(rawProducts);
+      populateCategoryDropdown();
+      updateDashboardData();
+
+      if (showAlert) {
+        const modoTxt = incluirSucataBobina ? 'Base completa (com Sucata e Bobina CA 60)' : 'Sem Sucata e Bobina CA 60';
+        alert(`Planilhas carregadas com sucesso! (${modoTxt})\n- Faturamento Líquido: ${formatBRL(totalFatDinamico)}\n- Itens ativos: ${parsedList.length} SKUs\n- Período: ${String(diasUteisPeriodo).replace('.', ',')} dias úteis`);
+      }
     }
 
     async function handleFileUpload(event) {
@@ -865,9 +945,6 @@
             const cod = parseInt(row[colCod]) || 0;
             const grupo = String(row[colGrupo] || 'GERAL').trim().toUpperCase();
 
-            // Ignora SUCATA e BOBINA CA 60 da análise
-            if (isItemOuGrupoIgnorado(grupo, nome)) return;
-
             // Filtro de Local de Estoque
             if (colLocal !== -1) {
               const localNorm = normalizeText(row[colLocal]);
@@ -932,69 +1009,8 @@
         }
       }
 
-      let parsedList = Object.values(itemMap).filter(p => {
-        if (isItemOuGrupoIgnorado(p.Grupo, p.Produto)) return false;
-        const temEstoque = (p.Estoque || 0) !== 0;
-        const temVendaOuDevolucao = (p.Faturamento || 0) !== 0 || (p.Quantidade || 0) !== 0;
-        return temEstoque || temVendaOuDevolucao;
-      });
-
-      parsedList.sort((a, b) => b.Faturamento - a.Faturamento);
-
-      const totalFatDinamico = parsedList.reduce((acc, p) => acc + (p.Faturamento || 0), 0);
-      let acum = 0;
-
-      parsedList.forEach((p, idx) => {
-        p['Posição'] = idx + 1;
-        if ((!p.CustoPosicao || p.CustoPosicao === 0) && p.Estoque !== 0 && p.ValorEstoque !== 0) {
-          p.CustoPosicao = p.ValorEstoque / p.Estoque;
-        }
-        if ((!p.ValorEstoque || p.ValorEstoque === 0) && p.Estoque !== 0 && p.CustoPosicao > 0) {
-          p.ValorEstoque = p.Estoque * p.CustoPosicao;
-        }
-        p.PrecoKg = p['Peso (kg)'] > 0 ? (p.Faturamento / p['Peso (kg)']) : 0;
-
-        const baseQtdVendida = (p.Quantidade && p.Quantidade > 0) ? p.Quantidade : (p['Peso (kg)'] || 0);
-        const custoUnitCalculo = p.CMVUnit > 0 ? p.CMVUnit : (p.CustoVenda > 0 ? p.CustoVenda : (p.CustoPosicao || 0));
-        p.CMVVendido = baseQtdVendida * custoUnitCalculo;
-        p.MargemBruta = p.Faturamento - p.CMVVendido;
-        p.MargemPct = p.Faturamento > 0 ? ((p.MargemBruta / p.Faturamento) * 100) : 0;
-
-        const vendaDiariaQtd = (p.Quantidade || 0) / (diasUteisPeriodo || 1);
-        if ((p.Estoque || 0) <= 0) {
-          p.DiasCobertura = 0;
-        } else {
-          p.DiasCobertura = vendaDiariaQtd > 0 ? Math.round(p.Estoque / vendaDiariaQtd) : 999;
-        }
-
-        if (p.Faturamento <= 0) {
-          p.CurvaABC = 'Sem Saída';
-        } else {
-          acum += p.Faturamento;
-          const pct = (acum / (totalFatDinamico || 1)) * 100;
-          if (pct <= 70) p.CurvaABC = 'Curva A';
-          else if (pct <= 90) p.CurvaABC = 'Curva B';
-          else p.CurvaABC = 'Curva C';
-        }
-      });
-
-      deadstockList = parsedList.filter(p => p.Estoque > 0 && p.Faturamento <= 0);
-      deadstockList.sort((a, b) => b.ValorEstoque - a.ValorEstoque);
-      displayedDeadstockList = [...deadstockList];
-
-      rawProducts = parsedList;
-      rawGroups = generateGroupsFromProducts(rawProducts, totalFatDinamico);
-      activeFilteredProducts = [...rawProducts];
-      currentDisplayedProducts = [...rawProducts];
-      expandedMenoresGrupos.clear();
-      expandedTopGrupos.clear();
-
-      salvarBaseParaSimulador(rawProducts);
-
-      populateCategoryDropdown();
-      updateDashboardData();
-      
-      alert(`Planilhas carregadas com sucesso! (Sucata e Bobina CA 60 desconsideradas)\n- Faturamento Líquido: ${formatBRL(totalFatDinamico)}\n- Itens ativos: ${parsedList.length} SKUs\n- Período: ${String(diasUteisPeriodo).replace('.', ',')} dias úteis`);
+      allUploadedProducts = Object.values(itemMap);
+      aplicarFiltrosBase(true);
     }
 
     function salvarBaseParaSimulador(lista) {
@@ -1080,6 +1096,7 @@
     }
 
     function updateDashboardData() {
+      const incluirSucataBobina = document.getElementById('toggleSucataBobina').checked;
       const totalFat = rawProducts.reduce((acc, p) => acc + (p.Faturamento || 0), 0);
       const totalWeight = rawProducts.reduce((acc, p) => acc + (p['Peso (kg)'] || 0), 0);
       const totalDeadstockVal = deadstockList.reduce((acc, p) => acc + (p.ValorEstoque || 0), 0);
@@ -1091,7 +1108,9 @@
         : 0;
 
       document.getElementById('kpi-faturamento').innerText = formatBRL(totalFat);
-      document.getElementById('kpi-sub-faturamento').innerText = `${rawGroups.length} grupos ativos (sem sucata e Bobina CA 60)`;
+      document.getElementById('kpi-sub-faturamento').innerText = incluirSucataBobina
+        ? `${rawGroups.length} grupos ativos (base completa Sankhya)`
+        : `${rawGroups.length} grupos ativos (sem sucata e Bobina CA 60)`;
       document.getElementById('kpi-peso').innerText = formatKG(totalWeight);
       document.getElementById('kpi-margem-kg').innerText = formatBRL(precoMedioKgGlobal) + '/kg';
       document.getElementById('kpi-estoque-parado-val').innerText = formatBRL(totalDeadstockVal);
@@ -1417,7 +1436,6 @@
     }
 
     function renderMenoresTabelas() {
-      // Bloco 1: 10 grupos com menor giro (excluindo zerados, sucata e Bobina CA 60)
       const gruposComVenda = rawGroups.filter(g => g.total > 0);
       const menosGrupos = [...gruposComVenda].reverse().slice(0, 10);
 
@@ -1440,7 +1458,6 @@
 
       renderMenoresGruposRows();
 
-      // Bloco 2: Top 20 produtos com menor giro (vendas > 0, sem sucata e Bobina CA 60)
       const tbodyProds = document.getElementById('tableMenoresProdutos');
       const prodsComVenda = rawProducts.filter(p => p.Faturamento > 0);
       const menosProds = [...prodsComVenda].sort((a, b) => a.Faturamento - b.Faturamento).slice(0, 20);
