@@ -383,7 +383,7 @@
               <h3 class="font-bold text-emerald-400 text-base flex items-center gap-2">
                 <i class="fa-solid fa-sack-dollar"></i> Curva ABC por Margem de Lucratividade Bruta
               </h3>
-              <p class="text-xs text-brand-muted">Ranking dos produtos pelo lucro real das vendas: <b>Faturamento - CMV (Qtd Vendida × Custo Unitário)</b>.</p>
+              <p class="text-xs text-brand-muted">Ranking dos produtos pelo lucro real das vendas: <b>Faturamento - CMV (Qtd Vendida × Custo Médio)</b>.</p>
             </div>
             <div class="flex flex-wrap items-center gap-2">
               <span class="bg-emerald-500/20 text-emerald-300 text-xs px-3 py-1.5 rounded-lg border border-emerald-500/30 font-semibold">Análise de Lucro Real</span>
@@ -461,7 +461,8 @@
                   <th class="py-3 px-3">Produto</th>
                   <th class="py-3 px-3">Grupo</th>
                   <th class="py-3 px-3 text-right">Faturamento (R$)</th>
-                  <th class="py-3 px-3 text-right">Qtd Vendida (Peso/Un)</th>
+                  <th class="py-3 px-3 text-right">Qtd Vendida (Un)</th>
+                  <th class="py-3 px-3 text-right">Peso Vendido (kg)</th>
                   <th class="py-3 px-3 text-right">Preço Médio</th>
                   <th class="py-3 px-3 text-right">Qtd Disponível</th>
                   <th class="py-3 px-3 text-right">Cobertura (Dias)</th>
@@ -538,12 +539,16 @@
     const formatKG = (val) => new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val || 0) + ' kg';
     const formatNum = (val) => new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(val || 0);
 
-    function formatQtdVendida(p) {
-      const peso = p['Peso (kg)'] || 0;
+    function formatUnidadesVendidas(p) {
       const qtd = p.Quantidade || 0;
-      if (peso !== 0) return formatKG(peso);
       if (qtd !== 0) return `${formatNum(qtd)} un`;
-      return '0';
+      return '-';
+    }
+
+    function formatPesoVendido(p) {
+      const peso = p['Peso (kg)'] || 0;
+      if (peso !== 0) return formatKG(peso);
+      return '-';
     }
 
     function formatPrecoMedio(p) {
@@ -551,8 +556,21 @@
       const peso = p['Peso (kg)'] || 0;
       const qtd = p.Quantidade || 0;
       if (fat === 0) return '-';
+      if (qtd !== 0 && peso !== 0 && Math.abs(qtd - peso) > 0.01) {
+        return `<div>${formatBRL(fat / qtd)}/un</div><div class="text-[10px] text-brand-muted">${formatBRL(fat / peso)}/kg</div>`;
+      }
       if (peso !== 0) return `${formatBRL(fat / peso)}/kg`;
       if (qtd !== 0) return `${formatBRL(fat / qtd)}/un`;
+      return '-';
+    }
+
+    function formatPrecoMedioTexto(p) {
+      const fat = p.Faturamento || 0;
+      const peso = p['Peso (kg)'] || 0;
+      const qtd = p.Quantidade || 0;
+      if (fat === 0) return '-';
+      if (qtd !== 0) return `${formatBRL(fat / qtd)}/un`;
+      if (peso !== 0) return `${formatBRL(fat / peso)}/kg`;
       return '-';
     }
 
@@ -711,7 +729,7 @@
           const worksheet = workbook.Sheets[sheetName];
           const rawRows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
-          let colCod = -1, colProd = -1, colGrupo = -1, colFat = -1, colQtd = -1, colPeso = -1, colEstoque = -1, colCusto = -1, colValorEstoque = -1, colLocal = -1;
+          let colCod = -1, colProd = -1, colGrupo = -1, colFat = -1, colQtd = -1, colPeso = -1, colEstoque = -1, colCusto = -1, colCustoVenda = -1, colCMV = -1, colValorEstoque = -1, colLocal = -1;
           let headerRowIdx = -1;
 
           for (let r = 0; r < Math.min(20, rawRows.length); r++) {
@@ -730,7 +748,7 @@
               if (val.includes('descriç') || val.includes('descric') || val === 'produto') colProd = c;
               if ((val.includes('grupo') || val.includes('categor')) && !val.includes('cód') && !val.includes('cod')) colGrupo = c;
               if (val.includes('faturam') || val.includes('venda') || val.includes('receit') || val.includes('total r$')) colFat = c;
-              if (val.includes('quantidade') || val.includes('qtd vend')) colQtd = c;
+              if (val === 'quantidade' || val.includes('qtd vend')) colQtd = c;
               if (val.includes('peso')) colPeso = c;
               if (val === 'local' && !val.includes('cód') && !val.includes('cod')) colLocal = c;
 
@@ -740,7 +758,9 @@
                 colEstoque = c;
               }
 
-              if (val.includes('custo') && !val.includes('data')) colCusto = c;
+              if (val === 'cmv') colCMV = c;
+              if (val.includes('custo médio') || val.includes('custo medio')) colCustoVenda = c;
+              if (val.includes('custo') && !val.includes('data') && !val.includes('médio') && !val.includes('medio')) colCusto = c;
               if (val.includes('valor') && val.includes('estoque')) colValorEstoque = c;
             });
 
@@ -777,6 +797,8 @@
             let qtd = colQtd !== -1 ? parseNumericValue(row[colQtd]) : 0;
             let est = colEstoque !== -1 ? parseNumericValue(row[colEstoque]) : 0;
             let custo = colCusto !== -1 ? parseNumericValue(row[colCusto]) : 0;
+            let custoVenda = colCustoVenda !== -1 ? parseNumericValue(row[colCustoVenda]) : 0;
+            let cmvUnit = colCMV !== -1 ? parseNumericValue(row[colCMV]) : 0;
             let valEst = colValorEstoque !== -1 ? parseNumericValue(row[colValorEstoque]) : 0;
 
             const key = cod > 0 ? `COD_${cod}` : lowerNome;
@@ -791,6 +813,8 @@
                 'Peso (kg)': peso,
                 Estoque: est,
                 CustoPosicao: custo,
+                CustoVenda: custoVenda || cmvUnit,
+                CMVUnit: cmvUnit || custoVenda,
                 ValorEstoque: valEst
               };
             } else {
@@ -800,6 +824,9 @@
               itemMap[key].Faturamento += fat;
               itemMap[key].Quantidade += qtd;
               itemMap[key]['Peso (kg)'] += peso;
+
+              if (custoVenda > 0) itemMap[key].CustoVenda = custoVenda;
+              if (cmvUnit > 0) itemMap[key].CMVUnit = cmvUnit;
 
               if (colEstoque !== -1) itemMap[key].Estoque += est;
               if (colCusto !== -1 && custo > 0) {
@@ -834,7 +861,8 @@
         p.PrecoKg = p['Peso (kg)'] > 0 ? (p.Faturamento / p['Peso (kg)']) : 0;
 
         const baseQtdVendida = (p.Quantidade && p.Quantidade > 0) ? p.Quantidade : (p['Peso (kg)'] || 0);
-        p.CMVVendido = baseQtdVendida * (p.CustoPosicao || 0);
+        const custoUnitCalculo = p.CMVUnit > 0 ? p.CMVUnit : (p.CustoVenda > 0 ? p.CustoVenda : (p.CustoPosicao || 0));
+        p.CMVVendido = baseQtdVendida * custoUnitCalculo;
         p.MargemBruta = p.Faturamento - p.CMVVendido;
         p.MargemPct = p.Faturamento > 0 ? ((p.MargemBruta / p.Faturamento) * 100) : 0;
 
@@ -1140,7 +1168,8 @@
           <td class="py-3 px-3 font-semibold text-white">${p.Produto}</td>
           <td class="py-3 px-3"><span class="bg-indigo-500/10 text-indigo-300 px-2 py-0.5 rounded text-[10px]">${p.Grupo}</span></td>
           <td class="py-3 px-3 text-right font-bold ${p.Faturamento < 0 ? 'text-rose-400' : 'text-emerald-400'}">${formatBRL(p.Faturamento)}</td>
-          <td class="py-3 px-3 text-right font-mono text-cyan-400">${formatQtdVendida(p)}</td>
+          <td class="py-3 px-3 text-right font-mono text-indigo-300 font-semibold">${formatUnidadesVendidas(p)}</td>
+          <td class="py-3 px-3 text-right font-mono text-cyan-400">${formatPesoVendido(p)}</td>
           <td class="py-3 px-3 text-right font-mono text-amber-300">${formatPrecoMedio(p)}</td>
           <td class="py-3 px-3 text-right font-mono">${p.Estoque > 0 ? p.Estoque.toLocaleString('pt-BR') : '0'}</td>
           <td class="py-3 px-3 text-right font-bold ${p.DiasCobertura > 90 ? 'text-rose-400' : 'text-emerald-400'}">${p.DiasCobertura === 999 ? 'Sem Giro' : p.DiasCobertura + ' dias'}</td>
@@ -1268,10 +1297,9 @@
         'Produto': item.Produto,
         'Grupo': item.Grupo,
         'Faturamento (R$)': Number((item.Faturamento || 0).toFixed(2)),
-        'Qtd Vendida (Peso/Un)': formatQtdVendida(item),
-        'Preço Médio': formatPrecoMedio(item),
-        'Peso (kg)': Number((item['Peso (kg)'] || 0).toFixed(2)),
         'Qtd Vendida (Un)': Number((item.Quantidade || 0).toFixed(2)),
+        'Peso Vendido (kg)': Number((item['Peso (kg)'] || 0).toFixed(2)),
+        'Preço Médio': formatPrecoMedioTexto(item),
         'Qtd Disponível': Number((item.Estoque || 0).toFixed(2)),
         'Custo (R$)': Number((item.CustoPosicao || 0).toFixed(4)),
         'CMV Vendido (R$)': Number((item.CMVVendido || 0).toFixed(2)),
@@ -1284,9 +1312,9 @@
       const ws = XLSX.utils.json_to_sheet(rows);
       ws['!cols'] = [
         { wch: 10 }, { wch: 12 }, { wch: 45 }, { wch: 24 },
-        { wch: 18 }, { wch: 22 }, { wch: 18 }, { wch: 15 },
-        { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 18 },
-        { wch: 18 }, { wch: 14 }, { wch: 18 }, { wch: 14 }
+        { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 18 },
+        { wch: 16 }, { wch: 16 }, { wch: 18 }, { wch: 18 },
+        { wch: 14 }, { wch: 18 }, { wch: 14 }
       ];
 
       const wb = XLSX.utils.book_new();
