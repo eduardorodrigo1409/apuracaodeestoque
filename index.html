@@ -95,17 +95,23 @@
         </div>
 
         <div class="flex flex-wrap items-center gap-2 w-full xl:w-auto justify-end">
-          <!-- BOTÃO CARREGAR PLANILHAS OPERAÇÃO ATUAL (ESTOQUE & VENDAS PERÍODO) -->
+          <!-- BOTÃO CARREGAR PLANILHAS OPERAÇÃO ATUAL -->
           <label class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-1.5 rounded-lg font-bold cursor-pointer transition flex items-center gap-1.5 shadow-lg" title="Carrega planilhas de Estoque (Galpão/Acessórios) e Vendas do período atual">
             <i class="fa-solid fa-file-excel text-sm"></i> 
             <span>Operação Atual</span>
             <input type="file" id="excelFileInput" accept=".xlsx, .xls, .csv, .xml" multiple class="hidden" onchange="handleFileUpload(event)">
           </label>
 
+          <!-- BOTÃO ADICIONAR MÊS FECHADO (SANKHYA) -->
+          <button onclick="abrirModalNovoMes()" class="bg-cyan-600 hover:bg-cyan-500 text-white text-xs px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 shadow-lg" title="Adiciona ou atualiza um único mês fechado (ex: Nov/2026) no histórico do Firebase">
+            <i class="fa-solid fa-calendar-plus text-sm"></i>
+            <span>+ Adicionar Mês Fechado</span>
+          </button>
+
           <!-- BOTÃO IMPORTAR PLANILHA CONSOLIDADA HISTÓRICA (TID + SANKHYA) -->
-          <label class="bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs px-3 py-1.5 rounded-lg font-extrabold cursor-pointer transition flex items-center gap-1.5 shadow-lg" title="Importa vendas_jan25_nov26_TID_Sankhya_v3.xlsx e salva no Firebase">
+          <label class="bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs px-3 py-1.5 rounded-lg font-extrabold cursor-pointer transition flex items-center gap-1.5 shadow-lg" title="Importa planilha consolidada completa e salva no Firebase">
             <i class="fa-solid fa-database text-sm"></i> 
-            <span>Histórico TID + Sankhya</span>
+            <span>Importar Consolidado</span>
             <input type="file" id="historicoExcelInput" accept=".xlsx, .xls" class="hidden" onchange="handleHistoricoConsolidadoUpload(event)">
           </label>
 
@@ -144,10 +150,10 @@
             </div>
             <div class="flex items-center gap-1">
               <label for="dataFinalInput" class="text-[11px] font-semibold text-amber-400">Até:</label>
-              <input type="date" id="dataFinalInput" value="2026-11-16" onchange="recalcularPeriodoDatas()" class="bg-transparent text-white font-semibold text-xs focus:outline-none border-b border-amber-500/40">
+              <input type="date" id="dataFinalInput" value="2026-11-19" onchange="recalcularPeriodoDatas()" class="bg-transparent text-white font-semibold text-xs focus:outline-none border-b border-amber-500/40">
             </div>
             <span id="badgeDiasUteis" class="bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[11px] font-bold px-2 py-0.5 rounded whitespace-nowrap">
-              11,5 dias úteis
+              13,5 dias úteis
             </span>
           </div>
         </div>
@@ -211,29 +217,29 @@
         <!-- BARRA DE FILTROS DO HISTÓRICO NA NUVEM -->
         <div class="glass-panel rounded-2xl p-4 border-l-4 border-amber-500 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2 flex-wrap">
               <h2 class="text-sm font-bold text-white">Histórico Unificado de Vendas (TID + Sankhya)</h2>
               <span id="hist-cloud-timestamp" class="text-[10px] bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded-full">
                 Aguardando dados...
               </span>
             </div>
-            <p class="text-xs text-brand-muted mt-0.5">Faturamento líquido descontando devoluções. Meses em andamento são excluídos automaticamente por padrão.</p>
+            <p class="text-xs text-brand-muted mt-0.5">Faturamento líquido descontando devoluções. O mês calendário em andamento é ignorado por padrão até ser fechado.</p>
           </div>
 
           <div class="flex flex-wrap items-center gap-2.5">
             <!-- CHECKBOX MÊS EM ANDAMENTO -->
-            <label class="flex items-center gap-1.5 bg-brand-bg border border-brand-border px-2.5 py-1.5 rounded-lg cursor-pointer select-none" title="Marque para incluir meses abertos/em andamento presentes na planilha (ex: Nov/2026)">
+            <label class="flex items-center gap-1.5 bg-brand-bg border border-brand-border px-2.5 py-1.5 rounded-lg cursor-pointer select-none" title="Marque para incluir meses ainda em andamento (ex: mês corrente)">
               <input type="checkbox" id="histIncluirMesAberto" onchange="renderHistoricoView()" class="accent-amber-500 w-3.5 h-3.5 rounded cursor-pointer">
-              <span class="text-[11px] font-semibold text-brand-muted">Incluir mês em andamento (Nov/26)</span>
+              <span class="text-[11px] font-semibold text-brand-muted" id="labelIncluirMesAberto">Incluir mês em andamento</span>
             </label>
 
             <!-- FILTRO DE RECORTE DE PERÍODO -->
             <select id="histFiltroRecorte" onchange="renderHistoricoView()" class="bg-brand-bg border border-amber-500/50 text-white text-xs font-semibold rounded-lg px-3 py-1.5 focus:outline-none focus:border-amber-400 cursor-pointer">
-              <option value="ALL">Todo o Histórico Fechado (Jan/25 – Out/26)</option>
-              <option value="2026">Ano 2026 (Jan – Out/26)</option>
+              <option value="ALL">Todo o Histórico Fechado</option>
+              <option value="2026">Ano 2026 (Fechados)</option>
               <option value="2025">Ano 2025 Completo (Jan – Dez/25)</option>
               <option value="TID">Somente Período TID (Jan/25 – Ago/26)</option>
-              <option value="SANKHYA">Somente Período Sankhya (Set – Out/26)</option>
+              <option value="SANKHYA">Somente Período Sankhya (Set/26 em diante)</option>
             </select>
 
             <!-- FILTRO DE MÊS ESPECÍFICO -->
@@ -303,7 +309,7 @@
             <div class="flex items-center justify-between mb-4">
               <div>
                 <h3 class="font-bold text-white text-sm">Evolução Mensal de Faturamento (TID → Sankhya)</h3>
-                <p class="text-xs text-brand-muted">Barras em azul/índigo representam o período TID e em verde representam o Sankhya</p>
+                <p class="text-xs text-brand-muted">Barras em índigo representam o período TID e em verde representam o Sankhya</p>
               </div>
             </div>
             <div class="relative h-72">
@@ -349,7 +355,7 @@
                   </tr>
                 </thead>
                 <tbody id="histVendedorasBody" class="divide-y divide-brand-border/40">
-                  <tr><td colspan="6" class="text-center py-8 text-brand-muted">Importe a planilha consolidada no botão dourado acima para visualizar.</td></tr>
+                  <tr><td colspan="6" class="text-center py-8 text-brand-muted">Importe a planilha consolidada ou adicione um mês fechado para visualizar.</td></tr>
                 </tbody>
               </table>
             </div>
@@ -377,7 +383,7 @@
                   </tr>
                 </thead>
                 <tbody id="histProdutosBody" class="divide-y divide-brand-border/40">
-                  <tr><td colspan="5" class="text-center py-8 text-brand-muted">Aguardando importação da base consolidada.</td></tr>
+                  <tr><td colspan="5" class="text-center py-8 text-brand-muted">Aguardando base consolidada.</td></tr>
                 </tbody>
               </table>
             </div>
@@ -391,7 +397,6 @@
       <!-- ===================================================================== -->
       <div id="content-visao-geral" class="hidden space-y-6">
         
-        <!-- KPI CARDS GRID OPERAÇÃO ATUAL -->
         <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div class="glass-card rounded-2xl p-5 transition-all">
             <div class="flex items-center justify-between text-brand-muted mb-3">
@@ -466,7 +471,7 @@
             <div class="mt-3 w-full bg-brand-bg rounded-full h-1.5 overflow-hidden">
               <div class="bg-gradient-to-r from-amber-500 to-orange-500 h-1.5 rounded-full" style="width: 65%"></div>
             </div>
-            <p class="text-[11px] text-brand-muted mt-2" id="kpi-sub-cobertura">Autonomia baseada no ritmo de 11,5 dias úteis</p>
+            <p class="text-[11px] text-brand-muted mt-2" id="kpi-sub-cobertura">Autonomia baseada no ritmo de 13,5 dias úteis</p>
           </div>
         </section>
 
@@ -745,6 +750,110 @@
     </main>
   </div>
 
+  <!-- ========================================================================= -->
+  <!-- MODAL: ADICIONAR / ATUALIZAR MÊS FECHADO NO HISTÓRICO (FIREBASE)          -->
+  <!-- ========================================================================= -->
+  <div id="modalNovoMes" class="fixed inset-0 z-50 hidden bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+    <div class="glass-panel rounded-2xl border border-cyan-500/40 max-w-3xl w-full p-6 space-y-5 my-8 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-brand-border pb-3">
+        <div>
+          <h3 class="text-base font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-calendar-plus text-cyan-400"></i> Adicionar ou Atualizar Mês Fechado (Sankhya)
+          </h3>
+          <p class="text-xs text-brand-muted">Grava somente o mês informado no Firebase, preservando todo o histórico anterior (Jan/25 em diante).</p>
+        </div>
+        <button onclick="fecharModalNovoMes()" class="text-brand-muted hover:text-white p-1.5 rounded-lg bg-brand-bg">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- IMPORTAÇÃO RÁPIDA DE PLANILHA DO MÊS (OPCIONAL) -->
+      <div class="bg-brand-bg/80 border border-dashed border-cyan-500/40 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div class="text-xs">
+          <span class="font-bold text-cyan-300">Atalho opcional:</span>
+          <span class="text-brand-muted">Suba a planilha de produtos vendidos do mês no Sankhya para preencher os Top Produtos automaticamente.</span>
+        </div>
+        <label class="bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 border border-cyan-500/40 text-xs px-3 py-1.5 rounded-lg font-semibold cursor-pointer whitespace-nowrap transition">
+          <i class="fa-solid fa-file-excel mr-1"></i> Ler Planilha de Produtos
+          <input type="file" id="novoMesProdFile" accept=".xlsx, .xls, .csv" class="hidden" onchange="lerPlanilhaProdutosNovoMes(event)">
+        </label>
+      </div>
+
+      <!-- CAMPOS PRINCIPAIS DO MÊS -->
+      <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
+        <div>
+          <label class="block text-brand-muted font-semibold mb-1">Mês de Referência *</label>
+          <input type="month" id="novoMesCodigo" value="2026-11" class="w-full bg-brand-bg border border-brand-border rounded-lg px-3 py-2 text-white font-semibold focus:border-cyan-400 focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-brand-muted font-semibold mb-1">Sistema (ERP) *</label>
+          <select id="novoMesFonte" class="w-full bg-brand-bg border border-brand-border rounded-lg px-3 py-2 text-white font-semibold focus:border-cyan-400 focus:outline-none">
+            <option value="Sankhya" selected>Sankhya</option>
+            <option value="TID">TID</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-brand-muted font-semibold mb-1">Qtd. Vendas / Notas *</label>
+          <input type="number" id="novoMesQtdVendas" placeholder="Ex: 1680" class="w-full bg-brand-bg border border-brand-border rounded-lg px-3 py-2 text-white font-semibold focus:border-cyan-400 focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-brand-muted font-semibold mb-1">Faturamento Líquido (R$) *</label>
+          <input type="text" id="novoMesFaturamento" placeholder="Ex: 2175583,92" class="w-full bg-brand-bg border border-brand-border rounded-lg px-3 py-2 text-emerald-400 font-bold focus:border-cyan-400 focus:outline-none">
+        </div>
+      </div>
+
+      <!-- FORMAS DE PAGAMENTO DO MÊS -->
+      <div class="space-y-2">
+        <div class="flex items-center justify-between">
+          <label class="text-xs font-bold text-white">Formas de Pagamento do Mês (R$)</label>
+          <span class="text-[11px] text-brand-muted">Preencha os valores líquidos por modalidade</span>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-5 gap-2.5 text-xs">
+          <div>
+            <span class="text-[10px] text-brand-muted block mb-1">PIX / Transferência</span>
+            <input type="text" id="pagPix" placeholder="0,00" class="w-full bg-brand-bg border border-brand-border rounded-lg px-2.5 py-1.5 text-white">
+          </div>
+          <div>
+            <span class="text-[10px] text-brand-muted block mb-1">Cartão de Crédito</span>
+            <input type="text" id="pagCredito" placeholder="0,00" class="w-full bg-brand-bg border border-brand-border rounded-lg px-2.5 py-1.5 text-white">
+          </div>
+          <div>
+            <span class="text-[10px] text-brand-muted block mb-1">Cartão de Débito</span>
+            <input type="text" id="pagDebito" placeholder="0,00" class="w-full bg-brand-bg border border-brand-border rounded-lg px-2.5 py-1.5 text-white">
+          </div>
+          <div>
+            <span class="text-[10px] text-brand-muted block mb-1">Boleto (a prazo)</span>
+            <input type="text" id="pagBoleto" placeholder="0,00" class="w-full bg-brand-bg border border-brand-border rounded-lg px-2.5 py-1.5 text-white">
+          </div>
+          <div>
+            <span class="text-[10px] text-brand-muted block mb-1">Dinheiro / Outros</span>
+            <input type="text" id="pagDinheiro" placeholder="0,00" class="w-full bg-brand-bg border border-brand-border rounded-lg px-2.5 py-1.5 text-white">
+          </div>
+        </div>
+      </div>
+
+      <!-- VENDEDORAS DO MÊS -->
+      <div class="space-y-2">
+        <div class="flex items-center justify-between">
+          <label class="text-xs font-bold text-white">Faturamento por Vendedora (Opcional — 1 por linha)</label>
+          <span class="text-[11px] text-brand-muted">Formato: <code class="text-cyan-300">NOME ; QTD VENDAS ; VALOR R$</code></span>
+        </div>
+        <textarea id="novoMesVendedorasTxt" rows="4" placeholder="DEBORA CAMPOS ; 245 ; 412500,00&#10;KEYLA COSTA ; 290 ; 368900,50&#10;MARA ROMANO ; 260 ; 310200,00" class="w-full bg-brand-bg border border-brand-border rounded-lg p-2.5 text-xs text-white font-mono focus:border-cyan-400 focus:outline-none"></textarea>
+      </div>
+
+      <div id="novoMesProdPreview" class="text-[11px] text-emerald-400 hidden"></div>
+
+      <div class="flex items-center justify-end gap-2 pt-3 border-t border-brand-border">
+        <button onclick="fecharModalNovoMes()" class="bg-brand-bg hover:bg-brand-cardHover text-brand-muted hover:text-white text-xs px-4 py-2 rounded-lg font-semibold transition">
+          Cancelar
+        </button>
+        <button onclick="salvarNovoMesNoHistorico()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-5 py-2 rounded-lg font-bold transition flex items-center gap-1.5 shadow-lg">
+          <i class="fa-solid fa-cloud-arrow-up"></i> Salvar Mês no Firebase
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script>
     // =========================================================================
     // CONFIGURAÇÃO DO FIREBASE (PROJETO: dashboard-245b9)
@@ -783,6 +892,7 @@
       vendedorasMes: []
     };
 
+    let novoMesProdutosBuffer = [];
     let histEvolucaoChartInstance = null;
     let histPagamentoChartInstance = null;
 
@@ -796,6 +906,151 @@
       if (!ym || !ym.includes('-')) return ym || '';
       const [y, m] = ym.split('-');
       return `${NOMES_MESES_PT[m] || m}/${y.slice(2)}`;
+    }
+
+    function getMesCalendarioAtual() {
+      const now = new Date();
+      return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    }
+
+    // =========================================================================
+    // MODAL: ADICIONAR / ATUALIZAR MÊS FECHADO
+    // =========================================================================
+    function abrirModalNovoMes() {
+      novoMesProdutosBuffer = [];
+      document.getElementById('novoMesProdPreview').classList.add('hidden');
+      document.getElementById('novoMesCodigo').value = getMesCalendarioAtual();
+      document.getElementById('modalNovoMes').classList.remove('hidden');
+    }
+
+    function fecharModalNovoMes() {
+      document.getElementById('modalNovoMes').classList.add('hidden');
+    }
+
+    async function lerPlanilhaProdutosNovoMes(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const buffer = await file.arrayBuffer();
+      const workbook = XLSX.read(new Uint8Array(buffer), { type: 'array' });
+      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rawRows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+      let colCod = -1, colProd = -1, colFat = -1, colQtd = -1, headerRowIdx = 0;
+      for (let r = 0; r < Math.min(20, rawRows.length); r++) {
+        const row = rawRows[r] || [];
+        row.forEach((cell, c) => {
+          const val = String(cell || '').toLowerCase().trim();
+          if ((val.includes('produto') || val.includes('prod')) && (val.includes('cód') || val.includes('cod'))) colCod = c;
+          else if ((val === 'código' || val === 'codigo') && colCod === -1) colCod = c;
+          if (val.includes('descriç') || val.includes('descric') || val === 'produto') colProd = c;
+          if (val.includes('faturam') || val.includes('venda') || val.includes('total r$') || val === 'valor') colFat = c;
+          if (val === 'quantidade' || val.includes('qtd')) colQtd = c;
+        });
+        if (colProd !== -1 && colFat !== -1) { headerRowIdx = r; break; }
+      }
+
+      const items = [];
+      rawRows.slice(headerRowIdx + 1).forEach(row => {
+        if (!row || row.length < 2) return;
+        const nome = String(row[colProd] || '').trim();
+        if (!nome || nome.toLowerCase().includes('total')) return;
+        const fat = parseNumericValue(row[colFat]);
+        const qtd = colQtd !== -1 ? parseNumericValue(row[colQtd]) : 0;
+        const cod = colCod !== -1 ? (parseInt(row[colCod]) || 0) : 0;
+        if (fat !== 0) {
+          items.push({ codigo: cod, produto: nome, un: 'UN', qtd, faturamento: fat });
+        }
+      });
+
+      items.sort((a, b) => b.faturamento - a.faturamento);
+      novoMesProdutosBuffer = items.slice(0, 20);
+
+      const totalPlanilha = items.reduce((acc, i) => acc + i.faturamento, 0);
+      if (!document.getElementById('novoMesFaturamento').value && totalPlanilha > 0) {
+        document.getElementById('novoMesFaturamento').value = totalPlanilha.toFixed(2).replace('.', ',');
+      }
+
+      const prev = document.getElementById('novoMesProdPreview');
+      prev.innerText = `${novoMesProdutosBuffer.length} produtos principais extraídos (Total da planilha: ${formatBRL(totalPlanilha)}).`;
+      prev.classList.remove('hidden');
+    }
+
+    async function salvarNovoMesNoHistorico() {
+      const mes = document.getElementById('novoMesCodigo').value.trim();
+      const fonte = document.getElementById('novoMesFonte').value;
+      const qtdVendas = parseInt(document.getElementById('novoMesQtdVendas').value) || 0;
+      const faturamento = parseNumericValue(document.getElementById('novoMesFaturamento').value);
+
+      if (!mes || faturamento <= 0) {
+        alert('Informe o Mês de Referência e o Faturamento Líquido (R$).');
+        return;
+      }
+
+      // 1. Remove registros antigos deste mesmo mês caso exista (para atualizar sem duplicar)
+      historicoData.resumo = (historicoData.resumo || []).filter(r => r.mes !== mes);
+      historicoData.pagamentos = (historicoData.pagamentos || []).filter(p => p.mes !== mes);
+      historicoData.vendedorasMes = (historicoData.vendedorasMes || []).filter(v => v.mes !== mes);
+      if (novoMesProdutosBuffer.length > 0) {
+        historicoData.produtosMes = (historicoData.produtosMes || []).filter(p => p.mes !== mes);
+      }
+
+      // 2. Insere novo Resumo Mensal e ordena cronologicamente
+      historicoData.resumo.push({
+        fonte, mes, vendas: qtdVendas, faturamento, semNF: 0
+      });
+      historicoData.resumo.sort((a, b) => a.mes.localeCompare(b.mes));
+
+      // 3. Insere Formas de Pagamento preenchidas
+      const modalidades = [
+        { forma: 'PIX', val: parseNumericValue(document.getElementById('pagPix').value) },
+        { forma: 'Cartão de crédito', val: parseNumericValue(document.getElementById('pagCredito').value) },
+        { forma: 'Cartão de débito', val: parseNumericValue(document.getElementById('pagDebito').value) },
+        { forma: 'Boleto (a prazo)', val: parseNumericValue(document.getElementById('pagBoleto').value) },
+        { forma: 'Dinheiro', val: parseNumericValue(document.getElementById('pagDinheiro').value) }
+      ];
+      modalidades.forEach(m => {
+        if (m.val !== 0) {
+          historicoData.pagamentos.push({ fonte, mes, forma: m.forma, vendas: 0, faturamento: m.val });
+        }
+      });
+
+      // 4. Insere Vendedoras digitadas/coladas
+      const vendLines = document.getElementById('novoMesVendedorasTxt').value.split('\n');
+      vendLines.forEach(line => {
+        const parts = line.split(/[;\t]+/).map(s => s.trim()).filter(Boolean);
+        if (parts.length >= 2) {
+          const nome = parts[0].toUpperCase();
+          const qtd = parts.length >= 3 ? (parseInt(parts[1]) || 0) : 0;
+          const fat = parts.length >= 3 ? parseNumericValue(parts[2]) : parseNumericValue(parts[1]);
+          if (nome && fat !== 0) {
+            historicoData.vendedorasMes.push({ fonte, mes, vendedora: nome, vendas: qtd, faturamento: fat });
+          }
+        }
+      });
+
+      // 5. Insere Produtos se planilha mensal foi lida
+      if (novoMesProdutosBuffer.length > 0) {
+        novoMesProdutosBuffer.forEach(item => {
+          historicoData.produtosMes.push({ fonte, mes, ...item });
+        });
+      }
+
+      historicoData.updatedAt = new Date().toISOString();
+
+      fecharModalNovoMes();
+      popularSeletorMesesHistorico();
+
+      // Se o mês adicionado for o mês corrente e o usuário acabou de fechá-lo manualmente, marca para exibir
+      if (mes === getMesCalendarioAtual()) {
+        document.getElementById('histIncluirMesAberto').checked = true;
+      }
+
+      renderHistoricoView();
+      switchTab('historico-consolidado');
+      await salvarHistoricoNoFirebase(historicoData);
+
+      alert(`Mês ${formatMesLabel(mes)} (${mes}) gravado no Firebase com sucesso!`);
     }
 
     // =========================================================================
@@ -846,7 +1101,7 @@
     let barChartInstance = null;
     let compChartInstance = null;
 
-    let diasUteisPeriodo = 11.5;
+    let diasUteisPeriodo = 13.5;
 
     const formatBRL = (val) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val || 0);
     const formatKG = (val) => new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val || 0) + ' kg';
@@ -863,7 +1118,7 @@
       } catch (err) {
         console.error('Erro ao salvar histórico no Firebase:', err);
         atualizarStatusFirebase('Erro ao salvar no Firebase', 'rose');
-        alert('Não foi possível salvar no Firebase. Verifique as regras do Firestore (Modo de Teste). Detalhe: ' + err.message);
+        alert('Não foi possível salvar no Firebase. Verifique as regras do Firestore. Detalhe: ' + err.message);
       }
     }
 
@@ -890,7 +1145,6 @@
       try {
         atualizarStatusFirebase('Carregando dados da nuvem...', 'amber');
 
-        // 1. Carregar Histórico Consolidado (TID + Sankhya)
         const docHist = await db.collection('dashboard_superaco').doc('historico_consolidado').get();
         if (docHist.exists) {
           historicoData = docHist.data();
@@ -898,7 +1152,6 @@
           renderHistoricoView();
         }
 
-        // 2. Carregar Operação Atual (Estoque & Vendas do Período)
         const docOp = await db.collection('dashboard_superaco').doc('operacao_atual').get();
         if (docOp.exists) {
           const opData = docOp.data();
@@ -914,7 +1167,7 @@
           }
         }
 
-        atualizarStatusFirebase('Firebase Conectado', 'emerald');
+        atualizarStatusFirebase('Firebase Sincronizado', 'emerald');
       } catch (err) {
         console.error('Erro ao carregar do Firebase:', err);
         atualizarStatusFirebase('Modo Offline / Verificar Regras', 'rose');
@@ -931,10 +1184,7 @@
       const buffer = await file.arrayBuffer();
       const workbook = XLSX.read(new Uint8Array(buffer), { type: 'array' });
 
-      // Aba 1: Resumo
-      const resumoRows = workbook.Sheets['Resumo']
-        ? XLSX.utils.sheet_to_json(workbook.Sheets['Resumo'])
-        : [];
+      const resumoRows = workbook.Sheets['Resumo'] ? XLSX.utils.sheet_to_json(workbook.Sheets['Resumo']) : [];
       const resumoLimpo = resumoRows
         .filter(r => r['Mês'] && /^\d{4}-\d{2}$/.test(String(r['Mês']).trim()))
         .map(r => ({
@@ -945,10 +1195,7 @@
           semNF: parseNumericValue(r['das quais TID tipo 2 – sem nº de NF (R$)'])
         }));
 
-      // Aba 2: Forma de pagamento
-      const pagRows = workbook.Sheets['Forma de pagamento']
-        ? XLSX.utils.sheet_to_json(workbook.Sheets['Forma de pagamento'])
-        : [];
+      const pagRows = workbook.Sheets['Forma de pagamento'] ? XLSX.utils.sheet_to_json(workbook.Sheets['Forma de pagamento']) : [];
       const pagamentosLimpos = pagRows
         .filter(r => r['Mês'] && /^\d{4}-\d{2}$/.test(String(r['Mês']).trim()))
         .map(r => ({
@@ -959,10 +1206,7 @@
           faturamento: parseNumericValue(r['Faturamento (R$)'])
         }));
 
-      // Aba 4: Produtos mês a mês
-      const prodRows = workbook.Sheets['Produtos mês a mês']
-        ? XLSX.utils.sheet_to_json(workbook.Sheets['Produtos mês a mês'])
-        : [];
+      const prodRows = workbook.Sheets['Produtos mês a mês'] ? XLSX.utils.sheet_to_json(workbook.Sheets['Produtos mês a mês']) : [];
       const produtosLimpos = prodRows
         .filter(r => r['Mês'] && /^\d{4}-\d{2}$/.test(String(r['Mês']).trim()))
         .map(r => ({
@@ -975,10 +1219,7 @@
           faturamento: parseNumericValue(r['Faturamento (R$)'])
         }));
 
-      // Aba 6: Vendedoras mês a mês
-      const vendRows = workbook.Sheets['Vendedoras mês a mês']
-        ? XLSX.utils.sheet_to_json(workbook.Sheets['Vendedoras mês a mês'])
-        : [];
+      const vendRows = workbook.Sheets['Vendedoras mês a mês'] ? XLSX.utils.sheet_to_json(workbook.Sheets['Vendedoras mês a mês']) : [];
       const vendedorasLimpos = vendRows
         .filter(r => r['Mês'] && /^\d{4}-\d{2}$/.test(String(r['Mês']).trim()))
         .map(r => ({
@@ -1005,28 +1246,23 @@
       popularSeletorMesesHistorico();
       renderHistoricoView();
       switchTab('historico-consolidado');
-
       await salvarHistoricoNoFirebase(historicoData);
-
-      const fechadoAteOut = resumoLimpo
-        .filter(r => r.mes !== '2026-11')
-        .reduce((acc, r) => acc + r.faturamento, 0);
-
-      alert(`Histórico Consolidado importado e salvo no Firebase!\n- Período fechado (Jan/25 a Out/26): ${formatBRL(fechadoAteOut)}\n- Novembro/2026 (em andamento) excluído automaticamente por padrão.`);
     }
 
     function popularSeletorMesesHistorico() {
       const select = document.getElementById('histFiltroMes');
       if (!select) return;
       const valorAtual = select.value;
-      select.innerHTML = '<option value="ALL">Todos os Meses do Recorte</option>';
+      const mesAtual = getMesCalendarioAtual();
+      document.getElementById('labelIncluirMesAberto').innerText = `Incluir mês em andamento (${formatMesLabel(mesAtual)})`;
 
+      select.innerHTML = '<option value="ALL">Todos os Meses do Recorte</option>';
       const mesesUnicos = [...new Set((historicoData.resumo || []).map(r => r.mes))].sort();
       mesesUnicos.forEach(m => {
         const opt = document.createElement('option');
         opt.value = m;
         const fonteItem = (historicoData.resumo || []).find(r => r.mes === m);
-        const tagAberto = m === '2026-11' ? ' (Em andamento)' : '';
+        const tagAberto = m === mesAtual ? ' (Em andamento)' : '';
         opt.textContent = `${formatMesLabel(m)} (${m}) — ${fonteItem ? fonteItem.fonte : ''}${tagAberto}`;
         select.appendChild(opt);
       });
@@ -1040,13 +1276,10 @@
       const incluirMesAberto = document.getElementById('histIncluirMesAberto').checked;
       const recorte = document.getElementById('histFiltroRecorte').value;
       const mesEspecifico = document.getElementById('histFiltroMes').value;
-
-      // Identifica o último mês da base (2026-11) como mês em andamento
-      const todosMeses = [...new Set((historicoData.resumo || []).map(r => r.mes))].sort();
-      const mesEmAndamento = todosMeses.length > 0 ? todosMeses[todosMeses.length - 1] : '2026-11';
+      const mesCorrente = getMesCalendarioAtual();
 
       return (historicoData.resumo || []).filter(r => {
-        if (!incluirMesAberto && r.mes === mesEmAndamento && r.mes === '2026-11') return false;
+        if (!incluirMesAberto && r.mes === mesCorrente) return false;
         if (recorte === '2026' && !r.mes.startsWith('2026-')) return false;
         if (recorte === '2025' && !r.mes.startsWith('2025-')) return false;
         if (recorte === 'TID' && r.fonte.toUpperCase() !== 'TID') return false;
@@ -1114,16 +1347,10 @@
             maintainAspectRatio: false,
             plugins: {
               legend: { display: false },
-              tooltip: {
-                callbacks: {
-                  label: (ctx) => `Faturamento: ${formatBRL(ctx.raw)}`
-                }
-              }
+              tooltip: { callbacks: { label: (ctx) => `Faturamento: ${formatBRL(ctx.raw)}` } }
             },
             scales: {
-              y: {
-                ticks: { callback: (v) => 'R$ ' + (v / 1000000).toFixed(1) + 'M' }
-              }
+              y: { ticks: { callback: (v) => 'R$ ' + (v / 1000000).toFixed(1) + 'M' } }
             }
           }
         });
