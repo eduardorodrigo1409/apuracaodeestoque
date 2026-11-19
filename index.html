@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard Executivo & Inteligência Comercial — Grupo Superaço</title>
+  <title>Gestão de Compras, Estoque & Reposição — Grupo Superaço</title>
   
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -73,18 +73,18 @@
         
         <div class="flex items-center gap-4 w-full xl:w-auto justify-between xl:justify-start">
           <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-emerald-400 flex items-center justify-center shadow-lg shadow-indigo-500/30">
-              <i class="fa-solid fa-chart-line text-white text-lg"></i>
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-cyan-500 to-emerald-400 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+              <i class="fa-solid fa-boxes-stacked text-white text-lg"></i>
             </div>
             <div>
               <div class="flex items-center gap-2 flex-wrap">
-                <h1 class="font-bold text-base lg:text-lg text-white tracking-wide">Inteligência Comercial & Estoque — Grupo Superaço</h1>
+                <h1 class="font-bold text-base lg:text-lg text-white tracking-wide">Compras, Estoque & Reposição — Grupo Superaço</h1>
                 <span id="firebase-status-badge" class="bg-amber-500/20 text-amber-300 text-[10px] px-2 py-0.5 rounded-full border border-amber-500/30 font-semibold flex items-center gap-1">
                   <i class="fa-solid fa-cloud"></i> Conectando Firebase...
                 </span>
               </div>
               <p class="text-xs text-brand-muted" id="header-sub">
-                Operação Sankhya (<span id="header-dias-label" class="text-amber-400 font-semibold">11,5</span> dias úteis — <span id="header-filtro-label">base completa alinhada ao Sankhya</span>)
+                Operação Sankhya (<span id="header-dias-label" class="text-amber-400 font-semibold">13,5</span> dias úteis — <span id="header-filtro-label">base completa alinhada ao Sankhya</span>)
               </p>
             </div>
           </div>
@@ -96,29 +96,29 @@
 
         <div class="flex flex-wrap items-center gap-2 w-full xl:w-auto justify-end">
           <!-- BOTÃO CARREGAR PLANILHAS OPERAÇÃO ATUAL -->
-          <label class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-1.5 rounded-lg font-bold cursor-pointer transition flex items-center gap-1.5 shadow-lg" title="Carrega planilhas de Estoque (Galpão/Acessórios) e Vendas do período atual">
+          <label class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-1.5 rounded-lg font-bold cursor-pointer transition flex items-center gap-1.5 shadow-lg" title="Carrega planilhas de Estoque Disponível (Galpão/Acessórios) e Saídas do período atual">
             <i class="fa-solid fa-file-excel text-sm"></i> 
-            <span>Operação Atual</span>
+            <span>Estoque & Giro Atual</span>
             <input type="file" id="excelFileInput" accept=".xlsx, .xls, .csv, .xml" multiple class="hidden" onchange="handleFileUpload(event)">
           </label>
 
           <!-- BOTÃO ADICIONAR MÊS FECHADO (SANKHYA) -->
-          <button onclick="abrirModalNovoMes()" class="bg-cyan-600 hover:bg-cyan-500 text-white text-xs px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 shadow-lg" title="Adiciona ou atualiza um único mês fechado (ex: Nov/2026) no histórico do Firebase">
+          <button onclick="abrirModalNovoMes()" class="bg-cyan-600 hover:bg-cyan-500 text-white text-xs px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 shadow-lg" title="Adiciona ou atualiza o consumo mensal de produtos de um mês fechado">
             <i class="fa-solid fa-calendar-plus text-sm"></i>
-            <span>+ Adicionar Mês Fechado</span>
+            <span>+ Mês Fechado</span>
           </button>
 
-          <!-- BOTÃO IMPORTAR PLANILHA CONSOLIDADA HISTÓRICA (TID + SANKHYA) -->
-          <label class="bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs px-3 py-1.5 rounded-lg font-extrabold cursor-pointer transition flex items-center gap-1.5 shadow-lg" title="Importa planilha consolidada completa e salva no Firebase">
+          <!-- BOTÃO IMPORTAR PLANILHA CONSOLIDADA HISTÓRICA -->
+          <label class="bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs px-3 py-1.5 rounded-lg font-extrabold cursor-pointer transition flex items-center gap-1.5 shadow-lg" title="Importa apenas as abas de Consumo Mensal e Produtos da planilha consolidada para o Firebase">
             <i class="fa-solid fa-database text-sm"></i> 
-            <span>Importar Consolidado</span>
+            <span>Importar Histórico</span>
             <input type="file" id="historicoExcelInput" accept=".xlsx, .xls" class="hidden" onchange="handleHistoricoConsolidadoUpload(event)">
           </label>
 
           <!-- BOTÃO GERAR RELATÓRIO PDF -->
           <button onclick="generatePDFReport()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 shadow-lg">
             <i class="fa-solid fa-file-pdf text-sm text-rose-300"></i>
-            <span>PDF Reunião</span>
+            <span>PDF Compras</span>
           </button>
 
           <button onclick="toggleFullscreen()" class="hidden xl:flex p-2 text-brand-muted hover:text-white rounded-lg bg-brand-card border border-brand-border" title="Tela Cheia">
@@ -187,10 +187,10 @@
       <!-- NAVIGATION TABS -->
       <div class="flex border-b border-brand-border space-x-2 sm:space-x-3 text-xs font-semibold overflow-x-auto pb-0.5">
         <button onclick="switchTab('historico-consolidado')" id="tab-historico-consolidado" class="nav-tab active px-4 py-2.5 text-amber-300 hover:text-white transition flex items-center gap-2 whitespace-nowrap">
-          <i class="fa-solid fa-clock-rotate-left text-amber-400"></i> Histórico Consolidado (TID + Sankhya)
+          <i class="fa-solid fa-chart-line text-amber-400"></i> Demanda & Sazonalidade (Histórico)
         </button>
         <button onclick="switchTab('visao-geral')" id="tab-visao-geral" class="nav-tab px-4 py-2.5 text-brand-muted hover:text-white transition flex items-center gap-2 whitespace-nowrap">
-          <i class="fa-solid fa-chart-pie"></i> Operação & Estoque Atual
+          <i class="fa-solid fa-chart-pie"></i> Estoque & Giro Atual
         </button>
         <button onclick="switchTab('estoque-parado')" id="tab-estoque-parado" class="nav-tab px-4 py-2.5 text-brand-muted hover:text-white transition flex items-center gap-2 whitespace-nowrap text-rose-400">
           <i class="fa-solid fa-circle-exclamation"></i> Estoque Parado (<span id="tab-count-deadstock">0</span>)
@@ -202,15 +202,15 @@
           <i class="fa-solid fa-arrow-down-short-wide text-amber-400"></i> Baixo Giro
         </button>
         <button onclick="switchTab('tabela-produtos')" id="tab-tabela-produtos" class="nav-tab px-4 py-2.5 text-brand-muted hover:text-white transition flex items-center gap-2 whitespace-nowrap">
-          <i class="fa-solid fa-list-check"></i> Detalhamento (<span id="tab-count-items">0</span>)
+          <i class="fa-solid fa-list-check"></i> Reposição & Cobertura (<span id="tab-count-items">0</span>)
         </button>
         <button onclick="switchTab('insights')" id="tab-insights" class="nav-tab px-4 py-2.5 text-brand-muted hover:text-white transition flex items-center gap-2 whitespace-nowrap">
-          <i class="fa-solid fa-lightbulb text-amber-400"></i> Plano Tático
+          <i class="fa-solid fa-lightbulb text-amber-400"></i> Diagnóstico Compras
         </button>
       </div>
 
       <!-- ===================================================================== -->
-      <!-- TAB 0: HISTÓRICO CONSOLIDADO (TID + SANKHYA — JAN/2025 A OUT/2026)     -->
+      <!-- TAB 0: DEMANDA & SAZONALIDADE (HISTÓRICO DE CONSUMO PARA COMPRAS)     -->
       <!-- ===================================================================== -->
       <div id="content-historico-consolidado" class="space-y-6">
         
@@ -218,17 +218,17 @@
         <div class="glass-panel rounded-2xl p-4 border-l-4 border-amber-500 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
             <div class="flex items-center gap-2 flex-wrap">
-              <h2 class="text-sm font-bold text-white">Histórico Unificado de Vendas (TID + Sankhya)</h2>
+              <h2 class="text-sm font-bold text-white">Histórico de Consumo & Reposição (Jan/2025 em diante)</h2>
               <span id="hist-cloud-timestamp" class="text-[10px] bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded-full">
                 Aguardando dados...
               </span>
             </div>
-            <p class="text-xs text-brand-muted mt-0.5">Faturamento líquido descontando devoluções. O mês calendário em andamento é ignorado por padrão até ser fechado.</p>
+            <p class="text-xs text-brand-muted mt-0.5">Base limpa focada em giro de mercadorias, demanda média mensal e cruzamento com o estoque disponível atual.</p>
           </div>
 
           <div class="flex flex-wrap items-center gap-2.5">
             <!-- CHECKBOX MÊS EM ANDAMENTO -->
-            <label class="flex items-center gap-1.5 bg-brand-bg border border-brand-border px-2.5 py-1.5 rounded-lg cursor-pointer select-none" title="Marque para incluir meses ainda em andamento (ex: mês corrente)">
+            <label class="flex items-center gap-1.5 bg-brand-bg border border-brand-border px-2.5 py-1.5 rounded-lg cursor-pointer select-none">
               <input type="checkbox" id="histIncluirMesAberto" onchange="renderHistoricoView()" class="accent-amber-500 w-3.5 h-3.5 rounded cursor-pointer">
               <span class="text-[11px] font-semibold text-brand-muted" id="labelIncluirMesAberto">Incluir mês em andamento</span>
             </label>
@@ -238,8 +238,8 @@
               <option value="ALL">Todo o Histórico Fechado</option>
               <option value="2026">Ano 2026 (Fechados)</option>
               <option value="2025">Ano 2025 Completo (Jan – Dez/25)</option>
-              <option value="TID">Somente Período TID (Jan/25 – Ago/26)</option>
-              <option value="SANKHYA">Somente Período Sankhya (Set/26 em diante)</option>
+              <option value="ULTIMOS_6">Últimos 6 Meses Fechados</option>
+              <option value="ULTIMOS_3">Últimos 3 Meses Fechados</option>
             </select>
 
             <!-- FILTRO DE MÊS ESPECÍFICO -->
@@ -249,18 +249,18 @@
 
             <!-- EXPORTAR HISTÓRICO EXCEL -->
             <button onclick="exportHistoricoExcel()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 shadow">
-              <i class="fa-solid fa-file-excel"></i> Exportar Excel
+              <i class="fa-solid fa-file-excel"></i> Exportar Compras
             </button>
           </div>
         </div>
 
-        <!-- KPIS DO HISTÓRICO CONSOLIDADO -->
+        <!-- KPIS DE CONSUMO & COMPRAS -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div class="glass-card rounded-2xl p-5">
             <div class="flex items-center justify-between text-brand-muted mb-2">
-              <span class="text-xs font-semibold uppercase tracking-wider">Faturamento Líquido</span>
+              <span class="text-xs font-semibold uppercase tracking-wider">Demanda Acumulada</span>
               <div class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
-                <i class="fa-solid fa-sack-dollar text-sm"></i>
+                <i class="fa-solid fa-boxes-packing text-sm"></i>
               </div>
             </div>
             <div class="text-2xl font-extrabold text-white tracking-tight" id="hist-kpi-faturamento">R$ 0,00</div>
@@ -269,157 +269,121 @@
 
           <div class="glass-card rounded-2xl p-5">
             <div class="flex items-center justify-between text-brand-muted mb-2">
-              <span class="text-xs font-semibold uppercase tracking-wider">Total de Vendas (Notas)</span>
+              <span class="text-xs font-semibold uppercase tracking-wider">Giro Médio Mensal</span>
               <div class="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center">
-                <i class="fa-solid fa-receipt text-sm"></i>
+                <i class="fa-solid fa-arrows-rotate text-sm"></i>
               </div>
             </div>
-            <div class="text-2xl font-extrabold text-white tracking-tight" id="hist-kpi-vendas">0</div>
-            <p class="text-[11px] text-brand-muted mt-1.5" id="hist-kpi-media-mensal">Média: R$ 0,00 / mês</p>
+            <div class="text-2xl font-extrabold text-indigo-300 tracking-tight" id="hist-kpi-media-mensal">R$ 0,00</div>
+            <p class="text-[11px] text-brand-muted mt-1.5" id="hist-kpi-vendas">0 pedidos/saídas no período</p>
           </div>
 
           <div class="glass-card rounded-2xl p-5">
             <div class="flex items-center justify-between text-brand-muted mb-2">
-              <span class="text-xs font-semibold uppercase tracking-wider">Ticket Médio por Venda</span>
-              <div class="w-8 h-8 rounded-lg bg-cyan-500/10 text-cyan-400 flex items-center justify-center">
-                <i class="fa-solid fa-chart-simple text-sm"></i>
-              </div>
-            </div>
-            <div class="text-2xl font-extrabold text-cyan-400 tracking-tight" id="hist-kpi-ticket">R$ 0,00</div>
-            <p class="text-[11px] text-brand-muted mt-1.5" id="hist-kpi-melhor-mes">Pico: -</p>
-          </div>
-
-          <div class="glass-card rounded-2xl p-5">
-            <div class="flex items-center justify-between text-brand-muted mb-2">
-              <span class="text-xs font-semibold uppercase tracking-wider">Participação por ERP</span>
+              <span class="text-xs font-semibold uppercase tracking-wider">Pico de Sazonalidade</span>
               <div class="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center">
-                <i class="fa-solid fa-server text-sm"></i>
+                <i class="fa-solid fa-arrow-trend-up text-sm"></i>
               </div>
             </div>
-            <div class="text-sm font-bold text-white space-y-1 mt-1" id="hist-kpi-erp-split">
-              <div class="flex justify-between"><span class="text-indigo-300">TID:</span> <span>R$ 0,00</span></div>
-              <div class="flex justify-between"><span class="text-emerald-300">Sankhya:</span> <span>R$ 0,00</span></div>
+            <div class="text-xl font-extrabold text-amber-400 tracking-tight" id="hist-kpi-melhor-mes">-</div>
+            <p class="text-[11px] text-brand-muted mt-1.5" id="hist-kpi-vale-mes">Menor giro: -</p>
+          </div>
+
+          <div class="glass-card rounded-2xl p-5 border border-cyan-500/30">
+            <div class="flex items-center justify-between text-brand-muted mb-2">
+              <span class="text-xs font-semibold uppercase tracking-wider text-cyan-400">Alerta de Reposição</span>
+              <div class="w-8 h-8 rounded-lg bg-cyan-500/10 text-cyan-400 flex items-center justify-center">
+                <i class="fa-solid fa-cart-shopping text-sm"></i>
+              </div>
             </div>
+            <div class="text-2xl font-extrabold text-white tracking-tight" id="hist-kpi-alertas-compra">0 SKUs</div>
+            <p class="text-[11px] text-cyan-300 mt-1.5" id="hist-kpi-alertas-sub">Com cobertura abaixo de 30 dias</p>
           </div>
         </div>
 
-        <!-- GRÁFICOS DO HISTÓRICO: EVOLUÇÃO MENSAL + FORMA DE PAGAMENTO -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div class="glass-panel rounded-2xl p-5 lg:col-span-2 flex flex-col justify-between">
-            <div class="flex items-center justify-between mb-4">
-              <div>
-                <h3 class="font-bold text-white text-sm">Evolução Mensal de Faturamento (TID → Sankhya)</h3>
-                <p class="text-xs text-brand-muted">Barras em índigo representam o período TID e em verde representam o Sankhya</p>
-              </div>
+        <!-- GRÁFICO DE SAZONALIDADE MENSAL (CONSUMO GERAL OU DO SKU SELECIONADO) -->
+        <div class="glass-panel rounded-2xl p-5">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <div>
+              <h3 class="font-bold text-white text-sm" id="histChartTitle">Curva de Sazonalidade de Saídas (Jan/25 → Out/26)</h3>
+              <p class="text-xs text-brand-muted" id="histChartSubtitle">Clique em qualquer produto na tabela abaixo para inspecionar o histórico mensal exclusivo daquele item</p>
             </div>
-            <div class="relative h-72">
-              <canvas id="histEvolucaoChart"></canvas>
-            </div>
+            <button id="btnResetSkuChart" onclick="selecionarProdutoHistorico(null)" class="hidden bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-200 border border-indigo-500/40 text-xs px-3 py-1 rounded-lg font-semibold transition">
+              <i class="fa-solid fa-rotate-left mr-1"></i> Voltar para Visão Geral
+            </button>
           </div>
-
-          <div class="glass-panel rounded-2xl p-5 flex flex-col justify-between">
-            <div class="mb-3">
-              <h3 class="font-bold text-white text-sm">Formas de Pagamento</h3>
-              <p class="text-xs text-brand-muted">Distribuição financeira no período selecionado</p>
-            </div>
-            <div class="relative h-52 flex items-center justify-center">
-              <canvas id="histPagamentoChart"></canvas>
-            </div>
-            <div id="histPagamentoLista" class="mt-3 pt-2 border-t border-brand-border space-y-1.5 text-xs max-h-36 overflow-y-auto"></div>
+          <div class="relative h-64">
+            <canvas id="histEvolucaoChart"></canvas>
           </div>
         </div>
 
-        <!-- TABELAS DO HISTÓRICO: RANKING VENDEDORAS & TOP PRODUTOS -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          
-          <!-- RANKING DE VENDEDORAS -->
-          <div class="glass-panel rounded-2xl p-5">
-            <div class="flex items-center justify-between mb-4">
-              <div>
-                <h3 class="font-bold text-white text-sm flex items-center gap-2">
-                  <i class="fa-solid fa-trophy text-amber-400"></i> Ranking Comercial por Vendedora
-                </h3>
-                <p class="text-xs text-brand-muted">Consolidado líquido (descontando devoluções) no período filtrado</p>
-              </div>
+        <!-- TABELA CENTRAL DE COMPRAS & REPOSIÇÃO (HISTÓRICO X ESTOQUE ATUAL) -->
+        <div class="glass-panel rounded-2xl p-5">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <div>
+              <h3 class="font-bold text-white text-sm flex items-center gap-2">
+                <i class="fa-solid fa-clipboard-list text-emerald-400"></i> Planejamento de Compras — Giro Histórico × Estoque Disponível
+              </h3>
+              <p class="text-xs text-brand-muted">Clique na linha de um produto para ver sua curva mensal de consumo no gráfico acima.</p>
             </div>
-            <div class="overflow-x-auto max-h-[420px]">
-              <table class="w-full text-left text-xs border-collapse">
-                <thead class="sticky top-0 bg-[#0B0F17]">
-                  <tr class="border-b border-brand-border text-brand-muted uppercase font-semibold">
-                    <th class="py-2.5 px-2.5">#</th>
-                    <th class="py-2.5 px-2.5">Vendedor(a)</th>
-                    <th class="py-2.5 px-2.5 text-right">Vendas</th>
-                    <th class="py-2.5 px-2.5 text-right">Ticket Médio</th>
-                    <th class="py-2.5 px-2.5 text-right">Faturamento (R$)</th>
-                    <th class="py-2.5 px-2.5 text-right">Share</th>
-                  </tr>
-                </thead>
-                <tbody id="histVendedorasBody" class="divide-y divide-brand-border/40">
-                  <tr><td colspan="6" class="text-center py-8 text-brand-muted">Importe a planilha consolidada ou adicione um mês fechado para visualizar.</td></tr>
-                </tbody>
-              </table>
+            <div class="relative w-full sm:w-64">
+              <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-1/2 -translate-y-1/2 text-brand-muted text-xs"></i>
+              <input 
+                type="text" 
+                id="histBuscaProduto"
+                placeholder="Filtrar código ou produto..." 
+                oninput="renderHistoricoView()"
+                class="w-full pl-8 pr-3 py-1.5 text-xs bg-brand-bg border border-brand-border rounded-lg text-white placeholder-brand-muted focus:outline-none focus:border-cyan-400"
+              >
             </div>
           </div>
 
-          <!-- TOP PRODUTOS DO PERÍODO -->
-          <div class="glass-panel rounded-2xl p-5">
-            <div class="flex items-center justify-between mb-4">
-              <div>
-                <h3 class="font-bold text-white text-sm flex items-center gap-2">
-                  <i class="fa-solid fa-cubes text-emerald-400"></i> Top Produtos no Período Filtrado
-                </h3>
-                <p class="text-xs text-brand-muted">Soma dos itens líderes (Top 20 mensais consolidados)</p>
-              </div>
-            </div>
-            <div class="overflow-x-auto max-h-[420px]">
-              <table class="w-full text-left text-xs border-collapse">
-                <thead class="sticky top-0 bg-[#0B0F17]">
-                  <tr class="border-b border-brand-border text-brand-muted uppercase font-semibold">
-                    <th class="py-2.5 px-2.5">#</th>
-                    <th class="py-2.5 px-2.5">Cód.</th>
-                    <th class="py-2.5 px-2.5">Produto</th>
-                    <th class="py-2.5 px-2.5 text-right">Qtd</th>
-                    <th class="py-2.5 px-2.5 text-right">Faturamento (R$)</th>
-                  </tr>
-                </thead>
-                <tbody id="histProdutosBody" class="divide-y divide-brand-border/40">
-                  <tr><td colspan="5" class="text-center py-8 text-brand-muted">Aguardando base consolidada.</td></tr>
-                </tbody>
-              </table>
-            </div>
+          <div class="overflow-x-auto max-h-[480px]">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead class="sticky top-0 bg-[#0B0F17]">
+                <tr class="border-b border-brand-border text-brand-muted uppercase font-semibold">
+                  <th class="py-3 px-2.5">#</th>
+                  <th class="py-3 px-2.5">Cód.</th>
+                  <th class="py-3 px-2.5">Produto</th>
+                  <th class="py-3 px-2.5 text-right">Saída Total (Período)</th>
+                  <th class="py-3 px-2.5 text-right">Média Mensal</th>
+                  <th class="py-3 px-2.5 text-right">Estoque Atual (Sankhya)</th>
+                  <th class="py-3 px-2.5 text-right">Cobertura Est.</th>
+                  <th class="py-3 px-2.5 text-center">Status Compra</th>
+                </tr>
+              </thead>
+              <tbody id="histProdutosBody" class="divide-y divide-brand-border/40">
+                <tr><td colspan="8" class="text-center py-8 text-brand-muted">Aguardando base histórica.</td></tr>
+              </tbody>
+            </table>
           </div>
-
         </div>
+
       </div>
 
       <!-- ===================================================================== -->
-      <!-- TAB 1: VISÃO GERAL (OPERAÇÃO ATUAL & ESTOQUE SANKHYA)                 -->
+      <!-- TAB 1: VISÃO GERAL (ESTOQUE & GIRO ATUAL SANKHYA)                     -->
       <!-- ===================================================================== -->
       <div id="content-visao-geral" class="hidden space-y-6">
         
         <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div class="glass-card rounded-2xl p-5 transition-all">
             <div class="flex items-center justify-between text-brand-muted mb-3">
-              <span class="text-xs font-semibold uppercase tracking-wider">FATURAMENTO</span>
+              <span class="text-xs font-semibold uppercase tracking-wider">SAÍDAS NO PERÍODO</span>
               <div class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
-                <i class="fa-solid fa-dollar-sign text-sm"></i>
+                <i class="fa-solid fa-truck-ramp-box text-sm"></i>
               </div>
             </div>
             <div class="flex items-baseline justify-between">
               <span class="text-2xl font-extrabold text-white tracking-tight" id="kpi-faturamento">R$ 0,00</span>
-              <span class="text-xs font-medium text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full flex items-center gap-1">
-                <i class="fa-solid fa-arrow-up text-[10px]"></i> Vendas
-              </span>
+              <span class="text-xs font-medium text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">Giro</span>
             </div>
-            <div class="mt-3 w-full bg-brand-bg rounded-full h-1.5 overflow-hidden">
-              <div class="bg-gradient-to-r from-emerald-500 to-teal-400 h-1.5 rounded-full" style="width: 100%"></div>
-            </div>
-            <p class="text-[11px] text-brand-muted mt-2" id="kpi-sub-faturamento">vendas confirmadas (base completa Sankhya)</p>
+            <p class="text-[11px] text-brand-muted mt-3" id="kpi-sub-faturamento">saídas confirmadas (base completa Sankhya)</p>
           </div>
 
           <div class="glass-card rounded-2xl p-5 transition-all">
             <div class="flex items-center justify-between text-brand-muted mb-3">
-              <span class="text-xs font-semibold uppercase tracking-wider">PESO</span>
+              <span class="text-xs font-semibold uppercase tracking-wider">TONELAGEM MOVIMENTADA</span>
               <div class="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center">
                 <i class="fa-solid fa-weight-hanging text-sm"></i>
               </div>
@@ -430,15 +394,12 @@
                 R$ 0,00/kg
               </span>
             </div>
-            <div class="mt-3 w-full bg-brand-bg rounded-full h-1.5 overflow-hidden">
-              <div class="bg-gradient-to-r from-indigo-500 to-purple-500 h-1.5 rounded-full" style="width: 82%"></div>
-            </div>
-            <p class="text-[11px] text-brand-muted mt-2" id="kpi-sub-peso">período filtrado</p>
+            <p class="text-[11px] text-brand-muted mt-3" id="kpi-sub-peso">volume expedido no período</p>
           </div>
 
           <div class="glass-card rounded-2xl p-5 transition-all border border-rose-500/30">
             <div class="flex items-center justify-between text-brand-muted mb-3">
-              <span class="text-xs font-semibold uppercase tracking-wider text-rose-400">Estoque Parado (Deadstock)</span>
+              <span class="text-xs font-semibold uppercase tracking-wider text-rose-400">Estoque Parado (Sem Giro)</span>
               <div class="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-400 flex items-center justify-center">
                 <i class="fa-solid fa-lock text-sm"></i>
               </div>
@@ -449,29 +410,21 @@
                 0 SKUs
               </span>
             </div>
-            <div class="mt-3 w-full bg-brand-bg rounded-full h-1.5 overflow-hidden">
-              <div class="bg-gradient-to-r from-rose-500 to-red-600 h-1.5 rounded-full" style="width: 45%"></div>
-            </div>
-            <p class="text-[11px] text-brand-muted mt-2">Galpão + Acessórios sem vendas</p>
+            <p class="text-[11px] text-brand-muted mt-3">Galpão + Acessórios sem saída</p>
           </div>
 
           <div class="glass-card rounded-2xl p-5 transition-all">
             <div class="flex items-center justify-between text-brand-muted mb-3">
-              <span class="text-xs font-semibold uppercase tracking-wider">Cobertura de Estoque</span>
+              <span class="text-xs font-semibold uppercase tracking-wider">Cobertura Média</span>
               <div class="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center">
                 <i class="fa-solid fa-hourglass-half text-sm"></i>
               </div>
             </div>
             <div class="flex items-baseline justify-between">
               <span class="text-2xl font-extrabold text-amber-400 tracking-tight" id="kpi-cobertura-dias">0 Dias</span>
-              <span class="text-xs font-medium text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">
-                Autonomia
-              </span>
+              <span class="text-xs font-medium text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">Autonomia</span>
             </div>
-            <div class="mt-3 w-full bg-brand-bg rounded-full h-1.5 overflow-hidden">
-              <div class="bg-gradient-to-r from-amber-500 to-orange-500 h-1.5 rounded-full" style="width: 65%"></div>
-            </div>
-            <p class="text-[11px] text-brand-muted mt-2" id="kpi-sub-cobertura">Autonomia baseada no ritmo de 13,5 dias úteis</p>
+            <p class="text-[11px] text-brand-muted mt-3" id="kpi-sub-cobertura">Autonomia baseada no ritmo de 13,5 dias úteis</p>
           </div>
         </section>
 
@@ -480,31 +433,30 @@
             <div class="flex items-center justify-between mb-4">
               <div>
                 <h3 class="font-bold text-white text-sm">Participação por Grupo (%)</h3>
-                <p class="text-xs text-brand-muted">Distribuição percentual da receita</p>
+                <p class="text-xs text-brand-muted">Distribuição por família de material</p>
               </div>
-              <span class="text-xs text-indigo-400 font-semibold bg-indigo-500/10 px-2 py-1 rounded">Top Categorias</span>
             </div>
             <div class="relative h-64 flex items-center justify-center">
               <canvas id="groupDonutChart"></canvas>
             </div>
             <div class="mt-4 pt-3 border-t border-brand-border flex justify-between text-xs text-brand-muted">
-              <span id="top3-summary">Top 3 representam <b>0.0%</b> das vendas</span>
-              <span class="text-indigo-400 cursor-pointer" onclick="switchTab('tabela-produtos')">Ver detalhes</span>
+              <span id="top3-summary">Top 3 representam <b>0.0%</b> do giro</span>
+              <span class="text-indigo-400 cursor-pointer" onclick="switchTab('tabela-produtos')">Ver cobertura</span>
             </div>
           </div>
 
           <div class="glass-panel rounded-2xl p-5 lg:col-span-2 flex flex-col justify-between">
             <div class="flex items-center justify-between mb-4">
               <div>
-                <h3 class="font-bold text-white text-sm" id="barChartTitle">Top Produtos Mais Vendidos (R$)</h3>
-                <p class="text-xs text-brand-muted">Maiores geradores de receita no período</p>
+                <h3 class="font-bold text-white text-sm">Top Produtos de Maior Giro</h3>
+                <p class="text-xs text-brand-muted">Itens de maior demanda para prioridade de reposição</p>
               </div>
             </div>
             <div class="relative h-64">
               <canvas id="topProductsChart"></canvas>
             </div>
             <div class="mt-4 pt-3 border-t border-brand-border flex items-center justify-between text-xs text-brand-muted">
-              <span id="top-product-champion">Produto Campeão: <b>-</b></span>
+              <span id="top-product-champion">Item Líder de Giro: <b>-</b></span>
               <span class="text-emerald-400 font-semibold" id="top-product-val">R$ 0,00</span>
             </div>
           </div>
@@ -514,8 +466,8 @@
           <div class="glass-panel rounded-2xl p-5 lg:col-span-2 flex flex-col justify-between">
             <div class="flex items-center justify-between mb-4">
               <div>
-                <h3 class="font-bold text-white text-sm">Comparativo Faturamento x Tonelagem por Grupo</h3>
-                <p class="text-xs text-brand-muted">Relação entre receita gerada e peso movimentado</p>
+                <h3 class="font-bold text-white text-sm">Comparativo Valor x Tonelagem por Grupo</h3>
+                <p class="text-xs text-brand-muted">Peso físico movimentado para planejamento de espaço e descarga</p>
               </div>
             </div>
             <div class="relative h-64">
@@ -526,7 +478,7 @@
           <div class="glass-panel rounded-2xl p-5 flex flex-col justify-between">
             <div>
               <h3 class="font-bold text-white text-sm mb-1">Ranking de Grupos (Top 5)</h3>
-              <p class="text-xs text-brand-muted mb-4">Clique em um grupo para expandir os SKUs</p>
+              <p class="text-xs text-brand-muted mb-4">Clique em um grupo para ver cobertura por SKU</p>
               <div class="space-y-2.5 max-h-[340px] overflow-y-auto pr-1" id="topGroupsList"></div>
             </div>
           </div>
@@ -539,7 +491,7 @@
           <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-4">
             <div>
               <h3 class="font-bold text-rose-400 text-base flex items-center gap-2">
-                <i class="fa-solid fa-lock"></i> Itens com Saldo Disponível sem Vendas (Deadstock Líquido)
+                <i class="fa-solid fa-lock"></i> Itens com Saldo Disponível sem Saída (Bloquear Compra)
               </h3>
               <p class="text-xs text-brand-muted">Considerando exclusivamente os locais <b>GALPÃO</b> e <b>ACESSÓRIOS</b> (coluna DISPONÍVEL).</p>
             </div>
@@ -567,8 +519,8 @@
                   <th onclick="toggleSortDeadstock('Grupo')" class="py-3 px-3 sortable hover:text-white">Grupo</th>
                   <th onclick="toggleSortDeadstock('Estoque')" class="py-3 px-3 text-right sortable hover:text-white">Qtd Disponível</th>
                   <th onclick="toggleSortDeadstock('CustoPosicao')" class="py-3 px-3 text-right sortable hover:text-white">Custo Unit. (R$)</th>
-                  <th onclick="toggleSortDeadstock('ValorEstoque')" class="py-3 px-3 text-right sortable hover:text-white">Valor Disponível (R$)</th>
-                  <th class="py-3 px-3 text-center">Ação Tática Sugerida</th>
+                  <th onclick="toggleSortDeadstock('ValorEstoque')" class="py-3 px-3 text-right sortable hover:text-white">Capital Parado (R$)</th>
+                  <th class="py-3 px-3 text-center">Diretriz de Compras</th>
                 </tr>
               </thead>
               <tbody id="tableDeadstock" class="divide-y divide-brand-border/40"></tbody>
@@ -583,9 +535,9 @@
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
             <div>
               <h3 class="font-bold text-emerald-400 text-base flex items-center gap-2">
-                <i class="fa-solid fa-sack-dollar"></i> Curva ABC por Margem de Lucratividade Bruta
+                <i class="fa-solid fa-sack-dollar"></i> Curva ABC de Contribuição & Custo (CMV)
               </h3>
-              <p class="text-xs text-brand-muted">Ranking dos produtos pelo lucro real das vendas: <b>Faturamento - CMV (Qtd Vendida × Custo Médio)</b>.</p>
+              <p class="text-xs text-brand-muted">Priorização de verba de compra pelos itens que geram maior retorno sobre o custo de reposição.</p>
             </div>
             <button onclick="exportCurvaLucratividadeExcel()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-1.5 rounded-lg font-semibold transition flex items-center gap-1.5 shadow">
               <i class="fa-solid fa-file-excel"></i> Exportar Excel (.xlsx)
@@ -600,11 +552,11 @@
                   <th class="py-3 px-3">Código</th>
                   <th class="py-3 px-3">Produto</th>
                   <th class="py-3 px-3">Grupo</th>
-                  <th class="py-3 px-3 text-right">Faturamento (R$)</th>
-                  <th class="py-3 px-3 text-right">CMV Vendido (R$)</th>
+                  <th class="py-3 px-3 text-right">Saídas (R$)</th>
+                  <th class="py-3 px-3 text-right">CMV (R$)</th>
                   <th class="py-3 px-3 text-right">Margem Bruta (R$)</th>
                   <th class="py-3 px-3 text-right">Margem %</th>
-                  <th class="py-3 px-3 text-center">Curva Lucro</th>
+                  <th class="py-3 px-3 text-center">Curva</th>
                 </tr>
               </thead>
               <tbody id="tableCurvaLucratividade" class="divide-y divide-brand-border/40"></tbody>
@@ -619,9 +571,9 @@
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
             <div>
               <h3 class="font-bold text-white text-base flex items-center gap-2">
-                <i class="fa-solid fa-layer-group text-amber-400"></i> 10 Grupos com Menor Giro (Vendas &gt; R$ 0,00)
+                <i class="fa-solid fa-layer-group text-amber-400"></i> 10 Grupos com Menor Giro (Excesso de Cobertura)
               </h3>
-              <p class="text-xs text-brand-muted">Clique em qualquer grupo abaixo para expandir e visualizar os SKUs.</p>
+              <p class="text-xs text-brand-muted">Clique em qualquer grupo abaixo para inspecionar os SKUs e suspender pedidos de compra.</p>
             </div>
             <button onclick="exportBaixoGiroExcel()" class="bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 shadow">
               <i class="fa-solid fa-file-excel"></i> Exportar Excel (.xlsx)
@@ -634,11 +586,11 @@
                 <tr class="border-b border-brand-border text-brand-muted uppercase font-semibold bg-[#0B0F17]">
                   <th class="py-3 px-3">Posição</th>
                   <th class="py-3 px-3">Grupo / Categoria</th>
-                  <th class="py-3 px-3 text-right">Faturamento (R$)</th>
+                  <th class="py-3 px-3 text-right">Saídas (R$)</th>
                   <th class="py-3 px-3 text-right">Share %</th>
                   <th class="py-3 px-3 text-right">Estoque Disponível (R$)</th>
                   <th class="py-3 px-3 text-right">Cobertura Média</th>
-                  <th class="py-3 px-3 text-center">Diagnóstico</th>
+                  <th class="py-3 px-3 text-center">Diretriz Compras</th>
                 </tr>
               </thead>
               <tbody id="tableMenoresGrupos" class="divide-y divide-brand-border/40"></tbody>
@@ -649,7 +601,7 @@
         <div class="glass-panel rounded-2xl p-5 border-l-4 border-orange-500">
           <div class="mb-4">
             <h3 class="font-bold text-white text-base flex items-center gap-2">
-              <i class="fa-solid fa-boxes-stacked text-orange-400"></i> Top 20 Produtos com Menor Giro (Cauda Longa com Venda)
+              <i class="fa-solid fa-boxes-stacked text-orange-400"></i> Top 20 Produtos com Menor Giro (Cauda Longa)
             </h3>
           </div>
           <div class="overflow-x-auto max-h-[460px]">
@@ -659,12 +611,12 @@
                   <th class="py-3 px-3">Código</th>
                   <th class="py-3 px-3">Produto</th>
                   <th class="py-3 px-3">Grupo</th>
-                  <th class="py-3 px-3 text-right">Qtd Vendida</th>
-                  <th class="py-3 px-3 text-right">Faturamento (R$)</th>
+                  <th class="py-3 px-3 text-right">Qtd Saída</th>
+                  <th class="py-3 px-3 text-right">Valor Saída (R$)</th>
                   <th class="py-3 px-3 text-right">Qtd Disponível</th>
                   <th class="py-3 px-3 text-right">Valor Estoque (R$)</th>
                   <th class="py-3 px-3 text-right">Cobertura (Dias)</th>
-                  <th class="py-3 px-3 text-center">Diagnóstico / Ação</th>
+                  <th class="py-3 px-3 text-center">Status Reposição</th>
                 </tr>
               </thead>
               <tbody id="tableMenoresProdutos" class="divide-y divide-brand-border/40"></tbody>
@@ -673,14 +625,14 @@
         </div>
       </div>
 
-      <!-- TAB 5: DETALHAMENTO DE PRODUTOS -->
+      <!-- TAB 5: DETALHAMENTO DE PRODUTOS (REPOSIÇÃO & COBERTURA) -->
       <div id="content-tabela-produtos" class="hidden space-y-4">
         <div class="glass-panel rounded-2xl p-5">
           <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
-            <h3 class="font-bold text-white text-base">Ranking Geral de Produtos & Cobertura de Estoque (Galpão + Acessórios)</h3>
+            <h3 class="font-bold text-white text-base">Mapa Geral de Reposição & Cobertura de Estoque (Galpão + Acessórios)</h3>
             <div class="flex flex-wrap items-center gap-2">
               <button onclick="enviarParaSimuladorOfertas()" class="bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs px-3 py-1.5 rounded-lg font-bold transition shadow flex items-center gap-1.5">
-                <i class="fa-solid fa-tags"></i> Enviar para Simulador de Ofertas
+                <i class="fa-solid fa-tags"></i> Enviar Excesso para Queima
               </button>
               <button onclick="exportToExcel()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-1.5 rounded-lg font-semibold transition shadow flex items-center gap-1.5">
                 <i class="fa-solid fa-file-excel"></i> Exportar Excel (.xlsx)
@@ -696,13 +648,13 @@
                   <th class="py-3 px-3">Código</th>
                   <th class="py-3 px-3">Produto</th>
                   <th class="py-3 px-3">Grupo</th>
-                  <th class="py-3 px-3 text-right">Faturamento (R$)</th>
-                  <th class="py-3 px-3 text-right">Qtd Vendida (Un)</th>
-                  <th class="py-3 px-3 text-right">Peso Vendido (kg)</th>
-                  <th class="py-3 px-3 text-right">Preço Médio</th>
+                  <th class="py-3 px-3 text-right">Saídas (R$)</th>
+                  <th class="py-3 px-3 text-right">Qtd Saída (Un)</th>
+                  <th class="py-3 px-3 text-right">Peso Saída (kg)</th>
+                  <th class="py-3 px-3 text-right">Custo Unit.</th>
                   <th class="py-3 px-3 text-right">Qtd Disponível</th>
                   <th class="py-3 px-3 text-right">Cobertura (Dias)</th>
-                  <th class="py-3 px-3 text-center">Classe ABC</th>
+                  <th class="py-3 px-3 text-center">Prioridade Compra</th>
                 </tr>
               </thead>
               <tbody id="productsTableBody" class="divide-y divide-brand-border/40"></tbody>
@@ -711,37 +663,37 @@
         </div>
       </div>
 
-      <!-- TAB 6: INSIGHTS DA DIRETORIA -->
+      <!-- TAB 6: DIAGNÓSTICO DE COMPRAS -->
       <div id="content-insights" class="hidden space-y-6">
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div class="glass-card rounded-2xl p-6 border-l-4 border-indigo-500">
-            <h4 class="font-bold text-white text-sm mb-2"><i class="fa-solid fa-crown text-indigo-400 mr-2"></i> Concentração Estratégica</h4>
+            <h4 class="font-bold text-white text-sm mb-2"><i class="fa-solid fa-crown text-indigo-400 mr-2"></i> Foco de Verba (Curva A)</h4>
             <p class="text-xs text-brand-muted mb-3" id="insight-concentracao">Análise de grupos Curva A.</p>
           </div>
           <div class="glass-card rounded-2xl p-6 border-l-4 border-emerald-500">
-            <h4 class="font-bold text-white text-sm mb-2"><i class="fa-solid fa-scale-balanced text-emerald-400 mr-2"></i> Giro por Tonelagem</h4>
-            <p class="text-xs text-brand-muted mb-3" id="insight-margem">Análise por volume movimentado.</p>
+            <h4 class="font-bold text-white text-sm mb-2"><i class="fa-solid fa-scale-balanced text-emerald-400 mr-2"></i> Giro Físico (Tonelagem)</h4>
+            <p class="text-xs text-brand-muted mb-3" id="insight-margem">Análise de volume movimentado.</p>
           </div>
           <div class="glass-card rounded-2xl p-6 border-l-4 border-rose-500">
-            <h4 class="font-bold text-white text-sm mb-2"><i class="fa-solid fa-boxes-packing text-rose-400 mr-2"></i> Deadstock & Cauda</h4>
+            <h4 class="font-bold text-white text-sm mb-2"><i class="fa-solid fa-boxes-packing text-rose-400 mr-2"></i> Bloqueio de Compras</h4>
             <p class="text-xs text-brand-muted mb-3" id="insight-cauda">Análise do capital imobilizado sem giro.</p>
           </div>
         </div>
 
         <div class="glass-panel rounded-2xl p-6 border-l-4 border-cyan-500">
-          <h3 class="font-bold text-white text-sm mb-4"><i class="fa-solid fa-bullseye text-cyan-400 mr-2"></i> Plano Tático de Ação Comercial (Reunião Executiva)</h3>
+          <h3 class="font-bold text-white text-sm mb-4"><i class="fa-solid fa-bullseye text-cyan-400 mr-2"></i> Diretrizes de Reposição & Gestão de Estoque</h3>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
             <div class="p-4 bg-brand-bg/60 rounded-xl border border-brand-border">
-              <div class="text-indigo-400 font-bold mb-1">1. Abordagem Comercial para HOJE</div>
-              <p class="text-brand-muted text-[11px]">Incentivar a oferta de insumos em todos os pedidos de perfis e colunas para aumentar o ticket médio.</p>
+              <div class="text-indigo-400 font-bold mb-1">1. Ruptura Zero na Curva A</div>
+              <p class="text-brand-muted text-[11px]">Manter cobertura mínima de segurança nos grupos líderes (Colunas, Telas e Vergalhões) considerando o lead time da usina.</p>
             </div>
             <div class="p-4 bg-brand-bg/60 rounded-xl border border-brand-border">
-              <div class="text-emerald-400 font-bold mb-1">2. Abordagem Comercial em Obras</div>
-              <p class="text-brand-muted text-[11px]">Foco no faturamento antecipado de rolos e amarrações para grandes compradores de telas.</p>
+              <div class="text-emerald-400 font-bold mb-1">2. Compra Sazonal Antecipada</div>
+              <p class="text-brand-muted text-[11px]">Usar a curva histórica (Jan/25–Out/26) para antecipar lotes antes dos meses de pico de obra e evitar falta de bitolas.</p>
             </div>
             <div class="p-4 bg-brand-bg/60 rounded-xl border border-brand-border">
-              <div class="text-amber-400 font-bold mb-1">3. Desova de Estoque Parado</div>
-              <p class="text-brand-muted text-[11px]">Gatilho de Checkout: "Deseja incluir os itens sem giro em condição especial com desconto no lote de colunas?"</p>
+              <div class="text-amber-400 font-bold mb-1">3. Trava de Reposição (Cauda)</div>
+              <p class="text-brand-muted text-[11px]">Suspender pedidos de itens com cobertura acima de 90 dias ou saldo parado, direcionando-os para o Simulador de Ofertas.</p>
             </div>
           </div>
         </div>
@@ -751,27 +703,27 @@
   </div>
 
   <!-- ========================================================================= -->
-  <!-- MODAL: ADICIONAR / ATUALIZAR MÊS FECHADO NO HISTÓRICO (FIREBASE)          -->
+  <!-- MODAL: ADICIONAR / ATUALIZAR MÊS FECHADO (APENAS CONSUMO & PRODUTOS)      -->
   <!-- ========================================================================= -->
   <div id="modalNovoMes" class="fixed inset-0 z-50 hidden bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-    <div class="glass-panel rounded-2xl border border-cyan-500/40 max-w-3xl w-full p-6 space-y-5 my-8 shadow-2xl">
+    <div class="glass-panel rounded-2xl border border-cyan-500/40 max-w-2xl w-full p-6 space-y-5 my-8 shadow-2xl">
       <div class="flex items-center justify-between border-b border-brand-border pb-3">
         <div>
           <h3 class="text-base font-bold text-white flex items-center gap-2">
-            <i class="fa-solid fa-calendar-plus text-cyan-400"></i> Adicionar ou Atualizar Mês Fechado (Sankhya)
+            <i class="fa-solid fa-calendar-plus text-cyan-400"></i> Adicionar Mês Fechado ao Histórico de Consumo
           </h3>
-          <p class="text-xs text-brand-muted">Grava somente o mês informado no Firebase, preservando todo o histórico anterior (Jan/25 em diante).</p>
+          <p class="text-xs text-brand-muted">Registra o giro mensal de saídas e produtos no Firebase para manter o cálculo de demanda média atualizado.</p>
         </div>
         <button onclick="fecharModalNovoMes()" class="text-brand-muted hover:text-white p-1.5 rounded-lg bg-brand-bg">
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
 
-      <!-- IMPORTAÇÃO RÁPIDA DE PLANILHA DO MÊS (OPCIONAL) -->
+      <!-- IMPORTAÇÃO RÁPIDA DE PLANILHA DO MÊS -->
       <div class="bg-brand-bg/80 border border-dashed border-cyan-500/40 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div class="text-xs">
-          <span class="font-bold text-cyan-300">Atalho opcional:</span>
-          <span class="text-brand-muted">Suba a planilha de produtos vendidos do mês no Sankhya para preencher os Top Produtos automaticamente.</span>
+          <span class="font-bold text-cyan-300">Importar do Sankhya:</span>
+          <span class="text-brand-muted">Suba a planilha de produtos movimentados no mês para preencher os volumes automaticamente.</span>
         </div>
         <label class="bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 border border-cyan-500/40 text-xs px-3 py-1.5 rounded-lg font-semibold cursor-pointer whitespace-nowrap transition">
           <i class="fa-solid fa-file-excel mr-1"></i> Ler Planilha de Produtos
@@ -780,65 +732,19 @@
       </div>
 
       <!-- CAMPOS PRINCIPAIS DO MÊS -->
-      <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
         <div>
           <label class="block text-brand-muted font-semibold mb-1">Mês de Referência *</label>
           <input type="month" id="novoMesCodigo" value="2026-11" class="w-full bg-brand-bg border border-brand-border rounded-lg px-3 py-2 text-white font-semibold focus:border-cyan-400 focus:outline-none">
         </div>
         <div>
-          <label class="block text-brand-muted font-semibold mb-1">Sistema (ERP) *</label>
-          <select id="novoMesFonte" class="w-full bg-brand-bg border border-brand-border rounded-lg px-3 py-2 text-white font-semibold focus:border-cyan-400 focus:outline-none">
-            <option value="Sankhya" selected>Sankhya</option>
-            <option value="TID">TID</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-brand-muted font-semibold mb-1">Qtd. Vendas / Notas *</label>
+          <label class="block text-brand-muted font-semibold mb-1">Qtd. Pedidos / Notas</label>
           <input type="number" id="novoMesQtdVendas" placeholder="Ex: 1680" class="w-full bg-brand-bg border border-brand-border rounded-lg px-3 py-2 text-white font-semibold focus:border-cyan-400 focus:outline-none">
         </div>
         <div>
-          <label class="block text-brand-muted font-semibold mb-1">Faturamento Líquido (R$) *</label>
+          <label class="block text-brand-muted font-semibold mb-1">Saída Total Líquida (R$) *</label>
           <input type="text" id="novoMesFaturamento" placeholder="Ex: 2175583,92" class="w-full bg-brand-bg border border-brand-border rounded-lg px-3 py-2 text-emerald-400 font-bold focus:border-cyan-400 focus:outline-none">
         </div>
-      </div>
-
-      <!-- FORMAS DE PAGAMENTO DO MÊS -->
-      <div class="space-y-2">
-        <div class="flex items-center justify-between">
-          <label class="text-xs font-bold text-white">Formas de Pagamento do Mês (R$)</label>
-          <span class="text-[11px] text-brand-muted">Preencha os valores líquidos por modalidade</span>
-        </div>
-        <div class="grid grid-cols-2 sm:grid-cols-5 gap-2.5 text-xs">
-          <div>
-            <span class="text-[10px] text-brand-muted block mb-1">PIX / Transferência</span>
-            <input type="text" id="pagPix" placeholder="0,00" class="w-full bg-brand-bg border border-brand-border rounded-lg px-2.5 py-1.5 text-white">
-          </div>
-          <div>
-            <span class="text-[10px] text-brand-muted block mb-1">Cartão de Crédito</span>
-            <input type="text" id="pagCredito" placeholder="0,00" class="w-full bg-brand-bg border border-brand-border rounded-lg px-2.5 py-1.5 text-white">
-          </div>
-          <div>
-            <span class="text-[10px] text-brand-muted block mb-1">Cartão de Débito</span>
-            <input type="text" id="pagDebito" placeholder="0,00" class="w-full bg-brand-bg border border-brand-border rounded-lg px-2.5 py-1.5 text-white">
-          </div>
-          <div>
-            <span class="text-[10px] text-brand-muted block mb-1">Boleto (a prazo)</span>
-            <input type="text" id="pagBoleto" placeholder="0,00" class="w-full bg-brand-bg border border-brand-border rounded-lg px-2.5 py-1.5 text-white">
-          </div>
-          <div>
-            <span class="text-[10px] text-brand-muted block mb-1">Dinheiro / Outros</span>
-            <input type="text" id="pagDinheiro" placeholder="0,00" class="w-full bg-brand-bg border border-brand-border rounded-lg px-2.5 py-1.5 text-white">
-          </div>
-        </div>
-      </div>
-
-      <!-- VENDEDORAS DO MÊS -->
-      <div class="space-y-2">
-        <div class="flex items-center justify-between">
-          <label class="text-xs font-bold text-white">Faturamento por Vendedora (Opcional — 1 por linha)</label>
-          <span class="text-[11px] text-brand-muted">Formato: <code class="text-cyan-300">NOME ; QTD VENDAS ; VALOR R$</code></span>
-        </div>
-        <textarea id="novoMesVendedorasTxt" rows="4" placeholder="DEBORA CAMPOS ; 245 ; 412500,00&#10;KEYLA COSTA ; 290 ; 368900,50&#10;MARA ROMANO ; 260 ; 310200,00" class="w-full bg-brand-bg border border-brand-border rounded-lg p-2.5 text-xs text-white font-mono focus:border-cyan-400 focus:outline-none"></textarea>
       </div>
 
       <div id="novoMesProdPreview" class="text-[11px] text-emerald-400 hidden"></div>
@@ -878,158 +784,29 @@
         : (cor === 'rose'
           ? 'bg-rose-500/20 text-rose-300 text-[10px] px-2 py-0.5 rounded-full border border-rose-500/30 font-semibold flex items-center gap-1'
           : 'bg-amber-500/20 text-amber-300 text-[10px] px-2 py-0.5 rounded-full border border-amber-500/30 font-semibold flex items-center gap-1');
-      badge.innerHTML = `<i class="fa-solid fa-cloud"></i> ${texto}`;
-    }
-
-    // =========================================================================
-    // ESTADO GLOBAL: HISTÓRICO CONSOLIDADO (TID + SANKHYA)
-    // =========================================================================
-    let historicoData = {
-      updatedAt: null,
-      resumo: [],
-      pagamentos: [],
-      produtosMes: [],
-      vendedorasMes: []
-    };
-
-    let novoMesProdutosBuffer = [];
-    let histEvolucaoChartInstance = null;
-    let histPagamentoChartInstance = null;
-
-    const NOMES_MESES_PT = {
-      '01': 'Jan', '02': 'Fev', '03': 'Mar', '04': 'Abr',
-      '05': 'Mai', '06': 'Jun', '07': 'Jul', '08': 'Ago',
-      '09': 'Set', '10': 'Out', '11': 'Nov', '12': 'Dez'
-    };
-
-    function formatMesLabel(ym) {
-      if (!ym || !ym.includes('-')) return ym || '';
-      const [y, m] = ym.split('-');
-      return `${NOMES_MESES_PT[m] || m}/${y.slice(2)}`;
-    }
-
-    function getMesCalendarioAtual() {
-      const now = new Date();
-      return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    }
-
-    // =========================================================================
-    // MODAL: ADICIONAR / ATUALIZAR MÊS FECHADO
-    // =========================================================================
-    function abrirModalNovoMes() {
-      novoMesProdutosBuffer = [];
-      document.getElementById('novoMesProdPreview').classList.add('hidden');
-      document.getElementById('novoMesCodigo').value = getMesCalendarioAtual();
-      document.getElementById('modalNovoMes').classList.remove('hidden');
-    }
-
-    function fecharModalNovoMes() {
-      document.getElementById('modalNovoMes').classList.add('hidden');
-    }
-
-    async function lerPlanilhaProdutosNovoMes(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-
-      const buffer = await file.arrayBuffer();
-      const workbook = XLSX.read(new Uint8Array(buffer), { type: 'array' });
-      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-      const rawRows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-
-      let colCod = -1, colProd = -1, colFat = -1, colQtd = -1, headerRowIdx = 0;
-      for (let r = 0; r < Math.min(20, rawRows.length); r++) {
-        const row = rawRows[r] || [];
-        row.forEach((cell, c) => {
-          const val = String(cell || '').toLowerCase().trim();
-          if ((val.includes('produto') || val.includes('prod')) && (val.includes('cód') || val.includes('cod'))) colCod = c;
-          else if ((val === 'código' || val === 'codigo') && colCod === -1) colCod = c;
-          if (val.includes('descriç') || val.includes('descric') || val === 'produto') colProd = c;
-          if (val.includes('faturam') || val.includes('venda') || val.includes('total r$') || val === 'valor') colFat = c;
-          if (val === 'quantidade' || val.includes('qtd')) colQtd = c;
-        });
-        if (colProd !== -1 && colFat !== -1) { headerRowIdx = r; break; }
-      }
-
-      const items = [];
-      rawRows.slice(headerRowIdx + 1).forEach(row => {
-        if (!row || row.length < 2) return;
-        const nome = String(row[colProd] || '').trim();
-        if (!nome || nome.toLowerCase().includes('total')) return;
-        const fat = parseNumericValue(row[colFat]);
-        const qtd = colQtd !== -1 ? parseNumericValue(row[colQtd]) : 0;
-        const cod = colCod !== -1 ? (parseInt(row[colCod]) || 0) : 0;
-        if (fat !== 0) {
-          items.push({ codigo: cod, produto: nome, un: 'UN', qtd, faturamento: fat });
-        }
-      });
-
-      items.sort((a, b) => b.faturamento - a.faturamento);
-      novoMesProdutosBuffer = items.slice(0, 20);
-
-      const totalPlanilha = items.reduce((acc, i) => acc + i.faturamento, 0);
-      if (!document.getElementById('novoMesFaturamento').value && totalPlanilha > 0) {
-        document.getElementById('novoMesFaturamento').value = totalPlanilha.toFixed(2).replace('.', ',');
-      }
-
-      const prev = document.getElementById('novoMesProdPreview');
-      prev.innerText = `${novoMesProdutosBuffer.length} produtos principais extraídos (Total da planilha: ${formatBRL(totalPlanilha)}).`;
+      badge.innerHTML = `<i class="fa-solid fa-cloud"></i> ${texto}`; }  // ========================================================================= // ESTADO GLOBAL: HISTÓRICO DE DEMANDA & SAZONALIDADE (SEM DADOS FINANCEIROS) // ========================================================================= let historicoData = { updatedAt: null, resumo: [], produtosMes: [] };  let selectedSkuHistorico = null; let novoMesProdutosBuffer = []; let histEvolucaoChartInstance = null;  const NOMES_MESES_PT = { '01': 'Jan', '02': 'Fev', '03': 'Mar', '04': 'Abr', '05': 'Mai', '06': 'Jun', '07': 'Jul', '08': 'Ago', '09': 'Set', '10': 'Out', '11': 'Nov', '12': 'Dez' };  function formatMesLabel(ym) { if (!ym \vert{}\vert{} !ym.includes('-')) return ym \vert{}\vert{} ''; const [y, m] = ym.split('-'); return `${NOMES_MESES_PT[m] || m}/${y.slice(2)}`; }  function getMesCalendarioAtual() { const now = new Date(); return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`; }  // ========================================================================= // MODAL: ADICIONAR / ATUALIZAR MÊS FECHADO // ========================================================================= function abrirModalNovoMes() { novoMesProdutosBuffer = []; document.getElementById('novoMesProdPreview').classList.add('hidden'); document.getElementById('novoMesCodigo').value = getMesCalendarioAtual(); document.getElementById('modalNovoMes').classList.remove('hidden'); }  function fecharModalNovoMes() { document.getElementById('modalNovoMes').classList.add('hidden'); }  async function lerPlanilhaProdutosNovoMes(event) { const file = event.target.files[0]; if (!file) return;  const buffer = await file.arrayBuffer(); const workbook = XLSX.read(new Uint8Array(buffer), { type: 'array' }); const worksheet = workbook.Sheets[workbook.SheetNames[0]]; const rawRows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });  let colCod = -1, colProd = -1, colFat = -1, colQtd = -1, headerRowIdx = 0; for (let r = 0; r < Math.min(20, rawRows.length); r++) { const row = rawRows[r] \vert{}\vert{} []; row.forEach((cell, c) => { const val = String(cell \vert{}\vert{} '').toLowerCase().trim(); if ((val.includes('produto') \vert{}\vert{} val.includes('prod')) && (val.includes('cód') \vert{}\vert{} val.includes('cod'))) colCod = c; else if ((val === 'código' \vert{}\vert{} val === 'codigo') && colCod === -1) colCod = c; if (val.includes('descriç') \vert{}\vert{} val.includes('descric') \vert{}\vert{} val === 'produto') colProd = c; if (val.includes('faturam') \vert{}\vert{} val.includes('venda') \vert{}\vert{} val.includes('total r$') \vert{}\vert{} val === 'valor') colFat = c; if (val === 'quantidade' \vert{}\vert{} val.includes('qtd')) colQtd = c; }); if (colProd !== -1 && colFat !== -1) { headerRowIdx = r; break; } }  const items = []; rawRows.slice(headerRowIdx + 1).forEach(row => { if (!row \vert{}\vert{} row.length < 2) return; const nome = String(row[colProd] \vert{}\vert{} '').trim(); if (!nome \vert{}\vert{} nome.toLowerCase().includes('total')) return; const fat = parseNumericValue(row[colFat]); const qtd = colQtd !== -1 ? parseNumericValue(row[colQtd]) : 0; const cod = colCod !== -1 ? (parseInt(row[colCod]) \vert{}\vert{} 0) : 0; if (fat !== 0 \vert{}\vert{} qtd !== 0) { items.push({ codigo: cod, produto: nome, un: 'UN', qtd, faturamento: fat }); } });  items.sort((a, b) => b.faturamento - a.faturamento); novoMesProdutosBuffer = items.slice(0, 50);  const totalPlanilha = items.reduce((acc, i) => acc + i.faturamento, 0); if (!document.getElementById('novoMesFaturamento').value && totalPlanilha > 0) { document.getElementById('novoMesFaturamento').value = totalPlanilha.toFixed(2).replace('.', ','); }  const prev = document.getElementById('novoMesProdPreview'); prev.innerText = `${novoMesProdutosBuffer.length} produtos extraídos (Total da planilha: ${formatBRL(totalPlanilha)}).`;
       prev.classList.remove('hidden');
     }
 
     async function salvarNovoMesNoHistorico() {
       const mes = document.getElementById('novoMesCodigo').value.trim();
-      const fonte = document.getElementById('novoMesFonte').value;
+      const fonte = 'Sankhya';
       const qtdVendas = parseInt(document.getElementById('novoMesQtdVendas').value) || 0;
       const faturamento = parseNumericValue(document.getElementById('novoMesFaturamento').value);
 
       if (!mes || faturamento <= 0) {
-        alert('Informe o Mês de Referência e o Faturamento Líquido (R$).');
+        alert('Informe o Mês de Referência e o Valor de Saída Líquida (R$).');
         return;
       }
 
-      // 1. Remove registros antigos deste mesmo mês caso exista (para atualizar sem duplicar)
       historicoData.resumo = (historicoData.resumo || []).filter(r => r.mes !== mes);
-      historicoData.pagamentos = (historicoData.pagamentos || []).filter(p => p.mes !== mes);
-      historicoData.vendedorasMes = (historicoData.vendedorasMes || []).filter(v => v.mes !== mes);
       if (novoMesProdutosBuffer.length > 0) {
         historicoData.produtosMes = (historicoData.produtosMes || []).filter(p => p.mes !== mes);
       }
 
-      // 2. Insere novo Resumo Mensal e ordena cronologicamente
-      historicoData.resumo.push({
-        fonte, mes, vendas: qtdVendas, faturamento, semNF: 0
-      });
+      historicoData.resumo.push({ fonte, mes, vendas: qtdVendas, faturamento });
       historicoData.resumo.sort((a, b) => a.mes.localeCompare(b.mes));
 
-      // 3. Insere Formas de Pagamento preenchidas
-      const modalidades = [
-        { forma: 'PIX', val: parseNumericValue(document.getElementById('pagPix').value) },
-        { forma: 'Cartão de crédito', val: parseNumericValue(document.getElementById('pagCredito').value) },
-        { forma: 'Cartão de débito', val: parseNumericValue(document.getElementById('pagDebito').value) },
-        { forma: 'Boleto (a prazo)', val: parseNumericValue(document.getElementById('pagBoleto').value) },
-        { forma: 'Dinheiro', val: parseNumericValue(document.getElementById('pagDinheiro').value) }
-      ];
-      modalidades.forEach(m => {
-        if (m.val !== 0) {
-          historicoData.pagamentos.push({ fonte, mes, forma: m.forma, vendas: 0, faturamento: m.val });
-        }
-      });
-
-      // 4. Insere Vendedoras digitadas/coladas
-      const vendLines = document.getElementById('novoMesVendedorasTxt').value.split('\n');
-      vendLines.forEach(line => {
-        const parts = line.split(/[;\t]+/).map(s => s.trim()).filter(Boolean);
-        if (parts.length >= 2) {
-          const nome = parts[0].toUpperCase();
-          const qtd = parts.length >= 3 ? (parseInt(parts[1]) || 0) : 0;
-          const fat = parts.length >= 3 ? parseNumericValue(parts[2]) : parseNumericValue(parts[1]);
-          if (nome && fat !== 0) {
-            historicoData.vendedorasMes.push({ fonte, mes, vendedora: nome, vendas: qtd, faturamento: fat });
-          }
-        }
-      });
-
-      // 5. Insere Produtos se planilha mensal foi lida
       if (novoMesProdutosBuffer.length > 0) {
         novoMesProdutosBuffer.forEach(item => {
           historicoData.produtosMes.push({ fonte, mes, ...item });
@@ -1041,7 +818,6 @@
       fecharModalNovoMes();
       popularSeletorMesesHistorico();
 
-      // Se o mês adicionado for o mês corrente e o usuário acabou de fechá-lo manualmente, marca para exibir
       if (mes === getMesCalendarioAtual()) {
         document.getElementById('histIncluirMesAberto').checked = true;
       }
@@ -1113,19 +889,25 @@
     async function salvarHistoricoNoFirebase(payload) {
       try {
         atualizarStatusFirebase('Salvando histórico na nuvem...', 'amber');
-        await db.collection('dashboard_superaco').doc('historico_consolidado').set(payload);
+        // Grava apenas os dados de consumo e produtos (sem formas de pagamento nem vendedoras)
+        const cleanPayload = {
+          updatedAt: payload.updatedAt || new Date().toISOString(),
+          resumo: payload.resumo || [],
+          produtosMes: payload.produtosMes || []
+        };
+        await db.collection('dashboard_superaco').doc('historico_consolidado').set(cleanPayload);
         atualizarStatusFirebase('Firebase Sincronizado', 'emerald');
       } catch (err) {
         console.error('Erro ao salvar histórico no Firebase:', err);
         atualizarStatusFirebase('Erro ao salvar no Firebase', 'rose');
-        alert('Não foi possível salvar no Firebase. Verifique as regras do Firestore. Detalhe: ' + err.message);
+        alert('Não foi possível salvar no Firebase. Detalhe: ' + err.message);
       }
     }
 
     async function salvarOperacaoAtualNoFirebase() {
       if (!allUploadedProducts || allUploadedProducts.length === 0) return;
       try {
-        atualizarStatusFirebase('Salvando operação na nuvem...', 'amber');
+        atualizarStatusFirebase('Salvando estoque na nuvem...', 'amber');
         const payload = {
           updatedAt: new Date().toISOString(),
           dataInicial: document.getElementById('dataInicialInput').value,
@@ -1137,7 +919,7 @@
         atualizarStatusFirebase('Firebase Sincronizado', 'emerald');
       } catch (err) {
         console.error('Erro ao salvar operação no Firebase:', err);
-        atualizarStatusFirebase('Erro ao salvar operação', 'rose');
+        atualizarStatusFirebase('Erro ao salvar estoque', 'rose');
       }
     }
 
@@ -1147,7 +929,12 @@
 
         const docHist = await db.collection('dashboard_superaco').doc('historico_consolidado').get();
         if (docHist.exists) {
-          historicoData = docHist.data();
+          const data = docHist.data();
+          historicoData = {
+            updatedAt: data.updatedAt || null,
+            resumo: data.resumo || [],
+            produtosMes: data.produtosMes || []
+          };
           popularSeletorMesesHistorico();
           renderHistoricoView();
         }
@@ -1175,7 +962,7 @@
     }
 
     // =========================================================================
-    // IMPORTADOR DA PLANILHA CONSOLIDADA (vendas_jan25_nov26_TID_Sankhya_v3.xlsx)
+    // IMPORTADOR LIMPO DA PLANILHA CONSOLIDADA (IGNORA PAGAMENTO E VENDEDORAS)
     // =========================================================================
     async function handleHistoricoConsolidadoUpload(event) {
       const file = event.target.files[0];
@@ -1184,6 +971,7 @@
       const buffer = await file.arrayBuffer();
       const workbook = XLSX.read(new Uint8Array(buffer), { type: 'array' });
 
+      // Lê exclusivamente a aba "Resumo" (giro mensal)
       const resumoRows = workbook.Sheets['Resumo'] ? XLSX.utils.sheet_to_json(workbook.Sheets['Resumo']) : [];
       const resumoLimpo = resumoRows
         .filter(r => r['Mês'] && /^\d{4}-\d{2}$/.test(String(r['Mês']).trim()))
@@ -1191,21 +979,10 @@
           fonte: String(r['Fonte'] || '').trim(),
           mes: String(r['Mês']).trim(),
           vendas: parseNumericValue(r['Vendas (qtd)']),
-          faturamento: parseNumericValue(r['Faturamento (R$)']),
-          semNF: parseNumericValue(r['das quais TID tipo 2 – sem nº de NF (R$)'])
-        }));
-
-      const pagRows = workbook.Sheets['Forma de pagamento'] ? XLSX.utils.sheet_to_json(workbook.Sheets['Forma de pagamento']) : [];
-      const pagamentosLimpos = pagRows
-        .filter(r => r['Mês'] && /^\d{4}-\d{2}$/.test(String(r['Mês']).trim()))
-        .map(r => ({
-          fonte: String(r['Fonte'] || '').trim(),
-          mes: String(r['Mês']).trim(),
-          forma: String(r['Forma (agrupada)'] || 'Outros').trim(),
-          vendas: parseNumericValue(r['Vendas (qtd)']),
           faturamento: parseNumericValue(r['Faturamento (R$)'])
         }));
 
+      // Lê exclusivamente a aba "Produtos mês a mês" (demanda por SKU)
       const prodRows = workbook.Sheets['Produtos mês a mês'] ? XLSX.utils.sheet_to_json(workbook.Sheets['Produtos mês a mês']) : [];
       const produtosLimpos = prodRows
         .filter(r => r['Mês'] && /^\d{4}-\d{2}$/.test(String(r['Mês']).trim()))
@@ -1219,34 +996,23 @@
           faturamento: parseNumericValue(r['Faturamento (R$)'])
         }));
 
-      const vendRows = workbook.Sheets['Vendedoras mês a mês'] ? XLSX.utils.sheet_to_json(workbook.Sheets['Vendedoras mês a mês']) : [];
-      const vendedorasLimpos = vendRows
-        .filter(r => r['Mês'] && /^\d{4}-\d{2}$/.test(String(r['Mês']).trim()))
-        .map(r => ({
-          fonte: String(r['Fonte'] || '').trim(),
-          mes: String(r['Mês']).trim(),
-          vendedora: String(r['Vendedor(a)'] || '<SEM VENDEDOR>').trim(),
-          vendas: parseNumericValue(r['Vendas (qtd)']),
-          faturamento: parseNumericValue(r['Faturamento (R$)'])
-        }));
-
       if (resumoLimpo.length === 0) {
-        alert('Não foi possível encontrar a aba "Resumo" no formato esperado da planilha consolidada.');
+        alert('Não foi possível encontrar a aba "Resumo" na planilha selecionada.');
         return;
       }
 
       historicoData = {
         updatedAt: new Date().toISOString(),
         resumo: resumoLimpo,
-        pagamentos: pagamentosLimpos,
-        produtosMes: produtosLimpos,
-        vendedorasMes: vendedorasLimpos
+        produtosMes: produtosLimpos
       };
 
       popularSeletorMesesHistorico();
       renderHistoricoView();
       switchTab('historico-consolidado');
       await salvarHistoricoNoFirebase(historicoData);
+
+      alert('Histórico de Consumo & Produtos importado e salvo no Firebase (dados financeiros/vendedoras ignorados).');
     }
 
     function popularSeletorMesesHistorico() {
@@ -1278,179 +1044,130 @@
       const mesEspecifico = document.getElementById('histFiltroMes').value;
       const mesCorrente = getMesCalendarioAtual();
 
-      return (historicoData.resumo || []).filter(r => {
+      let base = (historicoData.resumo || []).filter(r => {
         if (!incluirMesAberto && r.mes === mesCorrente) return false;
-        if (recorte === '2026' && !r.mes.startsWith('2026-')) return false;
-        if (recorte === '2025' && !r.mes.startsWith('2025-')) return false;
-        if (recorte === 'TID' && r.fonte.toUpperCase() !== 'TID') return false;
-        if (recorte === 'SANKHYA' && r.fonte.toUpperCase() !== 'SANKHYA') return false;
-        if (mesEspecifico !== 'ALL' && r.mes !== mesEspecifico) return false;
         return true;
       });
+
+      if (recorte === '2026') base = base.filter(r => r.mes.startsWith('2026-'));
+      else if (recorte === '2025') base = base.filter(r => r.mes.startsWith('2025-'));
+      else if (recorte === 'ULTIMOS_6') base = base.slice(-6);
+      else if (recorte === 'ULTIMOS_3') base = base.slice(-3);
+
+      if (mesEspecifico !== 'ALL') {
+        base = base.filter(r => r.mes === mesEspecifico);
+      }
+
+      return base;
+    }
+
+    function selecionarProdutoHistorico(skuKey) {
+      selectedSkuHistorico = skuKey;
+      renderHistoricoView();
     }
 
     function renderHistoricoView() {
       const tsEl = document.getElementById('hist-cloud-timestamp');
       if (historicoData.updatedAt) {
         const dt = new Date(historicoData.updatedAt);
-        tsEl.innerText = `Nuvem atualizada em ${dt.toLocaleDateString('pt-BR')} às ${dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
-      }
+        tsEl.innerText = `Nuvem atualizada em ${dt.toLocaleDateString('pt-BR')} às ${dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`; }  const resumoFiltrado = getMesesFiltradosHistorico(); const mesesAtivosSet = new Set(resumoFiltrado.map(r => r.mes)); const qtdMeses = resumoFiltrado.length \vert{}\vert{} 1;  const totalFat = resumoFiltrado.reduce((acc, r) => acc + r.faturamento, 0); const totalVendas = resumoFiltrado.reduce((acc, r) => acc + r.vendas, 0); const mediaMensal = totalFat / qtdMeses;  let melhorMes = null, piorMes = null; resumoFiltrado.forEach(r => { if (!melhorMes \vert{}\vert{} r.faturamento > melhorMes.faturamento) melhorMes = r; if (!piorMes \vert{}\vert{} r.faturamento < piorMes.faturamento) piorMes = r; });  document.getElementById('hist-kpi-faturamento').innerText = formatBRL(totalFat); document.getElementById('hist-kpi-meses-count').innerText = `${resumoFiltrado.length} ${resumoFiltrado.length === 1 ? 'mês consolidado' : 'meses consolidados'}`; document.getElementById('hist-kpi-media-mensal').innerText = formatBRL(mediaMensal); document.getElementById('hist-kpi-vendas').innerText = `${totalVendas.toLocaleString('pt-BR')} pedidos no período`;
+      document.getElementById('hist-kpi-melhor-mes').innerText = melhorMes
+        ? `${formatMesLabel(melhorMes.mes)} (${formatBRL(melhorMes.faturamento)})`
+        : '-';
+      document.getElementById('hist-kpi-vale-mes').innerText = piorMes
+        ? `Menor giro: ${formatMesLabel(piorMes.mes)} (${formatBRL(piorMes.faturamento)})`
+        : 'Menor giro: -';
 
-      const resumoFiltrado = getMesesFiltradosHistorico();
-      const mesesAtivosSet = new Set(resumoFiltrado.map(r => r.mes));
-
-      const totalFat = resumoFiltrado.reduce((acc, r) => acc + r.faturamento, 0);
-      const totalVendas = resumoFiltrado.reduce((acc, r) => acc + r.vendas, 0);
-      const qtdMeses = resumoFiltrado.length;
-      const mediaMensal = qtdMeses > 0 ? totalFat / qtdMeses : 0;
-      const ticketMedio = totalVendas > 0 ? totalFat / totalVendas : 0;
-
-      const fatTID = resumoFiltrado.filter(r => r.fonte.toUpperCase() === 'TID').reduce((acc, r) => acc + r.faturamento, 0);
-      const fatSankhya = resumoFiltrado.filter(r => r.fonte.toUpperCase() === 'SANKHYA').reduce((acc, r) => acc + r.faturamento, 0);
-
-      let melhorMes = null;
-      resumoFiltrado.forEach(r => {
-        if (!melhorMes || r.faturamento > melhorMes.faturamento) melhorMes = r;
+      // Mapa de estoque atual (Sankhya) por código de produto para cruzar com a demanda histórica
+      const estoqueAtualMap = {};
+      (rawProducts || []).forEach(p => {
+        if (p.Código > 0) estoqueAtualMap[p.Código] = p.Estoque || 0;
       });
 
-      document.getElementById('hist-kpi-faturamento').innerText = formatBRL(totalFat);
-      document.getElementById('hist-kpi-meses-count').innerText = `${qtdMeses} ${qtdMeses === 1 ? 'mês consolidado' : 'meses consolidados'}`;
-      document.getElementById('hist-kpi-vendas').innerText = totalVendas.toLocaleString('pt-BR');
-      document.getElementById('hist-kpi-media-mensal').innerText = `Média: ${formatBRL(mediaMensal)} / mês`;
-      document.getElementById('hist-kpi-ticket').innerText = formatBRL(ticketMedio);
-      document.getElementById('hist-kpi-melhor-mes').innerText = melhorMes
-        ? `Pico: ${formatMesLabel(melhorMes.mes)} (${formatBRL(melhorMes.faturamento)})`
-        : 'Pico: -';
-
-      document.getElementById('hist-kpi-erp-split').innerHTML = `
-        <div class="flex justify-between"><span class="text-indigo-300">TID:</span> <span>${formatBRL(fatTID)}</span></div>
-        <div class="flex justify-between"><span class="text-emerald-300">Sankhya:</span> <span>${formatBRL(fatSankhya)}</span></div>
-      `;
-
-      // 1. Gráfico de Evolução Mensal
-      if (histEvolucaoChartInstance) histEvolucaoChartInstance.destroy();
-      const ctxEvol = document.getElementById('histEvolucaoChart');
-      if (ctxEvol && resumoFiltrado.length > 0) {
-        histEvolucaoChartInstance = new Chart(ctxEvol, {
-          type: 'bar',
-          data: {
-            labels: resumoFiltrado.map(r => `${formatMesLabel(r.mes)} (${r.fonte})`),
-            datasets: [{
-              label: 'Faturamento Líquido (R$)',
-              data: resumoFiltrado.map(r => r.faturamento),
-              backgroundColor: resumoFiltrado.map(r => r.fonte.toUpperCase() === 'SANKHYA' ? '#10B981' : '#6366F1'),
-              borderRadius: 6
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: { display: false },
-              tooltip: { callbacks: { label: (ctx) => `Faturamento: ${formatBRL(ctx.raw)}` } }
-            },
-            scales: {
-              y: { ticks: { callback: (v) => 'R$ ' + (v / 1000000).toFixed(1) + 'M' } }
-            }
-          }
-        });
-      }
-
-      // 2. Formas de Pagamento Filtradas
-      const pagMap = {};
-      (historicoData.pagamentos || [])
-        .filter(p => mesesAtivosSet.has(p.mes))
-        .forEach(p => {
-          let labelForma = p.forma;
-          if (labelForma.startsWith('À vista')) labelForma = 'À vista (TID)';
-          if (!pagMap[labelForma]) pagMap[labelForma] = { forma: labelForma, faturamento: 0, vendas: 0 };
-          pagMap[labelForma].faturamento += p.faturamento;
-          pagMap[labelForma].vendas += p.vendas;
-        });
-
-      const pagList = Object.values(pagMap).sort((a, b) => b.faturamento - a.faturamento);
-      const totalPagFat = pagList.reduce((acc, p) => acc + p.faturamento, 0);
-
-      if (histPagamentoChartInstance) histPagamentoChartInstance.destroy();
-      const ctxPag = document.getElementById('histPagamentoChart');
-      if (ctxPag && pagList.length > 0) {
-        histPagamentoChartInstance = new Chart(ctxPag, {
-          type: 'doughnut',
-          data: {
-            labels: pagList.map(p => p.forma),
-            datasets: [{
-              data: pagList.map(p => p.faturamento),
-              backgroundColor: ['#10B981', '#6366F1', '#F59E0B', '#06B6D4', '#EC4899', '#8B5CF6'],
-              borderWidth: 2,
-              borderColor: '#151C2C'
-            }]
-          },
-          options: { responsive: true, maintainAspectRatio: false, cutout: '68%', plugins: { legend: { display: false } } }
-        });
-      }
-
-      document.getElementById('histPagamentoLista').innerHTML = pagList.map(p => {
-        const share = totalPagFat > 0 ? ((p.faturamento / totalPagFat) * 100).toFixed(1) : '0.0';
-        return `
-          <div class="flex items-center justify-between py-1 border-b border-brand-border/30 last:border-none">
-            <span class="text-white truncate pr-2">${p.forma}</span>
-            <span class="font-mono text-emerald-400 whitespace-nowrap">${formatBRL(p.faturamento)} <span class="text-brand-muted">(${share}%)</span></span>
-          </div>
-        `;
-      }).join('');
-
-      // 3. Ranking de Vendedoras Filtrado
-      const vendMap = {};
-      (historicoData.vendedorasMes || [])
-        .filter(v => mesesAtivosSet.has(v.mes))
-        .forEach(v => {
-          if (!vendMap[v.vendedora]) vendMap[v.vendedora] = { vendedora: v.vendedora, vendas: 0, faturamento: 0 };
-          vendMap[v.vendedora].vendas += v.vendas;
-          vendMap[v.vendedora].faturamento += v.faturamento;
-        });
-
-      const vendList = Object.values(vendMap).sort((a, b) => b.faturamento - a.faturamento);
-      const vendBody = document.getElementById('histVendedorasBody');
-      if (vendList.length > 0) {
-        vendBody.innerHTML = vendList.map((v, idx) => {
-          const ticket = v.vendas > 0 ? v.faturamento / v.vendas : 0;
-          const share = totalFat > 0 ? ((v.faturamento / totalFat) * 100).toFixed(1) : '0.0';
-          return `
-            <tr class="hover:bg-brand-cardHover/60 transition">
-              <td class="py-2.5 px-2.5 font-mono text-brand-muted">${idx + 1}º</td>
-              <td class="py-2.5 px-2.5 font-semibold text-white">${v.vendedora}</td>
-              <td class="py-2.5 px-2.5 text-right font-mono text-indigo-300">${v.vendas.toLocaleString('pt-BR')}</td>
-              <td class="py-2.5 px-2.5 text-right font-mono text-cyan-400">${formatBRL(ticket)}</td>
-              <td class="py-2.5 px-2.5 text-right font-bold ${v.faturamento < 0 ? 'text-rose-400' : 'text-emerald-400'}">${formatBRL(v.faturamento)}</td>
-              <td class="py-2.5 px-2.5 text-right font-mono text-brand-muted">${share}%</td>
-            </tr>
-          `;
-        }).join('');
-      }
-
-      // 4. Top Produtos Filtrados
+      // Consolida Produtos no período filtrado
+      const buscaTermo = (document.getElementById('histBuscaProduto').value || '').toLowerCase().trim();
       const prodMap = {};
       (historicoData.produtosMes || [])
         .filter(p => mesesAtivosSet.has(p.mes))
         .forEach(p => {
-          const key = p.codigo > 0 ? `C_${p.codigo}` : p.produto;
-          if (!prodMap[key]) prodMap[key] = { codigo: p.codigo, produto: p.produto, un: p.un, qtd: 0, faturamento: 0 };
-          prodMap[key].qtd += p.qtd;
-          prodMap[key].faturamento += p.faturamento;
-        });
+          const key = p.codigo > 0 ? `C_${p.codigo}` : p.produto; if (!prodMap[key]) { prodMap[key] = { key, codigo: p.codigo, produto: p.produto, un: p.un, qtdTotal: 0, faturamento: 0, mesesComSaida: 0 }; } prodMap[key].qtdTotal += p.qtd; prodMap[key].faturamento += p.faturamento; prodMap[key].mesesComSaida += 1; });  let alertasCompraCount = 0; const prodList = Object.values(prodMap) .map(p => { const mediaQtdMes = p.qtdTotal / qtdMeses; const hasEstoqueAtual = p.codigo > 0 && estoqueAtualMap[p.codigo] !== undefined; const estoqueAtual = hasEstoqueAtual ? estoqueAtualMap[p.codigo] : null; const coberturaDiasHist = (hasEstoqueAtual && mediaQtdMes > 0) ? Math.round((estoqueAtual / mediaQtdMes) * 30) : null;  if (coberturaDiasHist !== null && coberturaDiasHist < 30) { alertasCompraCount += 1; }  return { ...p, mediaQtdMes, estoqueAtual, coberturaDiasHist }; }) .sort((a, b) => b.faturamento - a.faturamento);  document.getElementById('hist-kpi-alertas-compra').innerText = Object.keys(estoqueAtualMap).length > 0 ? `${alertasCompraCount} SKUs`
+        : 'Suba Estoque Atual';
+      document.getElementById('hist-kpi-alertas-sub').innerText = Object.keys(estoqueAtualMap).length > 0
+        ? 'Com cobertura histórica < 30 dias'
+        : 'Carregue "Estoque & Giro Atual" para cruzar';
 
-      const prodList = Object.values(prodMap).sort((a, b) => b.faturamento - a.faturamento).slice(0, 50);
+      // Gráfico de Sazonalidade (Visão Geral ou SKU Selecionado)
+      if (histEvolucaoChartInstance) histEvolucaoChartInstance.destroy();
+      const ctxEvol = document.getElementById('histEvolucaoChart');
+      const btnReset = document.getElementById('btnResetSkuChart');
+
+      if (ctxEvol && resumoFiltrado.length > 0) {
+        if (selectedSkuHistorico && prodMap[selectedSkuHistorico]) {
+          const itemSel = prodMap[selectedSkuHistorico];
+          btnReset.classList.remove('hidden');
+          document.getElementById('histChartTitle').innerText = `Sazonalidade de Consumo: ${itemSel.codigo} —${itemSel.produto}`;
+          document.getElementById('histChartSubtitle').innerText = `Quantidade movimentada mês a mês (${itemSel.un || 'Un'}) ao longo do período selecionado`;
+
+          const porMesMap = {};
+          (historicoData.produtosMes || [])
+            .filter(p => mesesAtivosSet.has(p.mes) && (p.codigo > 0 ? `C_${p.codigo}` === selectedSkuHistorico : p.produto === selectedSkuHistorico))
+            .forEach(p => { porMesMap[p.mes] = (porMesMap[p.mes] || 0) + p.qtd; });
+
+          histEvolucaoChartInstance = new Chart(ctxEvol, {
+            type: 'bar',
+            data: {
+              labels: resumoFiltrado.map(r => formatMesLabel(r.mes)),
+              datasets: [{
+                label: `Qtd Saída (${itemSel.un \vert{}\vert{} 'Un'})`, data: resumoFiltrado.map(r => porMesMap[r.mes] \vert{}\vert{} 0), backgroundColor: '#06B6D4', borderRadius: 6 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } } }); } else { btnReset.classList.add('hidden'); document.getElementById('histChartTitle').innerText = 'Curva de Sazonalidade de Saídas (Histórico Consolidado)'; document.getElementById('histChartSubtitle').innerText = 'Clique em qualquer produto na tabela abaixo para inspecionar o histórico mensal exclusivo daquele item';  histEvolucaoChartInstance = new Chart(ctxEvol, { type: 'bar', data: { labels: resumoFiltrado.map(r => formatMesLabel(r.mes)), datasets: [{ label: 'Saída Líquida (R$)', data: resumoFiltrado.map(r => r.faturamento), backgroundColor: resumoFiltrado.map(r => r.fonte.toUpperCase() === 'SANKHYA' ? '#10B981' : '#6366F1'), borderRadius: 6 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => `Saídas: ${formatBRL(ctx.raw)}` } }
+              },
+              scales: {
+                y: { ticks: { callback: (v) => 'R$ ' + (v / 1000000).toFixed(1) + 'M' } }
+              }
+            }
+          });
+        }
+      }
+
+      // Renderiza Tabela de Planejamento de Compras
+      const prodFiltradosTabela = prodList.filter(p =>
+        !buscaTermo ||
+        p.produto.toLowerCase().includes(buscaTermo) ||
+        String(p.codigo).includes(buscaTermo)
+      );
+
       const prodBody = document.getElementById('histProdutosBody');
-      if (prodList.length > 0) {
-        prodBody.innerHTML = prodList.map((p, idx) => `
-          <tr class="hover:bg-brand-cardHover/60 transition">
-            <td class="py-2.5 px-2.5 font-mono text-brand-muted">${idx + 1}º</td>
-            <td class="py-2.5 px-2.5 font-mono text-brand-muted">${p.codigo || '-'}</td>
-            <td class="py-2.5 px-2.5 font-semibold text-white">${p.produto}</td>
-            <td class="py-2.5 px-2.5 text-right font-mono text-indigo-300">${formatNum(p.qtd)} ${p.un}</td>
-            <td class="py-2.5 px-2.5 text-right font-bold text-emerald-400">${formatBRL(p.faturamento)}</td>
-          </tr>
-        `).join('');
+      if (prodFiltradosTabela.length > 0) {
+        prodBody.innerHTML = prodFiltradosTabela.map((p, idx) => {
+          const isSelected = selectedSkuHistorico === p.key;
+          let statusBadge = '<span class="bg-slate-500/15 text-slate-300 border border-slate-500/30 px-2 py-0.5 rounded text-[10px]">Sem Estoque Carregado</span>';
+
+          if (p.coberturaDiasHist !== null) {
+            if (p.estoqueAtual <= 0 || p.coberturaDiasHist < 15) {
+              statusBadge = '<span class="bg-rose-500/20 text-rose-300 border border-rose-500/40 px-2 py-0.5 rounded text-[10px] font-bold">COMPRAR URGENTE</span>';
+            } else if (p.coberturaDiasHist < 35) {
+              statusBadge = '<span class="bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded text-[10px] font-bold">PONTO DE PEDIDO</span>';
+            } else if (p.coberturaDiasHist > 90) {
+              statusBadge = '<span class="bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 px-2 py-0.5 rounded text-[10px] font-semibold">EXCESSO (SUSPENDER)</span>';
+            } else {
+              statusBadge = '<span class="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded text-[10px] font-semibold">ABASTECIDO</span>';
+            }
+          }
+
+          return `
+            <tr onclick="selecionarProdutoHistorico('${p.key.replace(/'/g, "\\'")}')" class="cursor-pointer transition ${isSelected ? 'bg-cyan-500/15 border-l-2 border-cyan-400' : 'hover:bg-brand-cardHover/60'}">
+              <td class="py-2.5 px-2.5 font-mono text-brand-muted">${idx + 1}º</td>
+              <td class="py-2.5 px-2.5 font-mono text-brand-muted">${p.codigo || '-'}</td>
+              <td class="py-2.5 px-2.5 font-semibold text-white">${p.produto}</td>
+              <td class="py-2.5 px-2.5 text-right font-mono text-indigo-300">${formatNum(p.qtdTotal)}${p.un}</td>
+              <td class="py-2.5 px-2.5 text-right font-mono font-bold text-cyan-300">${formatNum(p.mediaQtdMes)}${p.un}/mês</td>
+              <td class="py-2.5 px-2.5 text-right font-mono text-white">${p.estoqueAtual !== null ? formatNum(p.estoqueAtual) : '-'}</td>
+              <td class="py-2.5 px-2.5 text-right font-bold ${p.coberturaDiasHist !== null && p.coberturaDiasHist < 30 ? 'text-rose-400' : 'text-emerald-400'}">
+                ${p.coberturaDiasHist !== null ? `${p.coberturaDiasHist} dias` : '-'}
+              </td>
+              <td class="py-2.5 px-2.5 text-center">${statusBadge}</td>
+            </tr>
+          `;
+        }).join('');
       }
     }
 
@@ -1462,35 +1179,50 @@
       }
 
       const mesesSet = new Set(resumoFiltrado.map(r => r.mes));
+      const qtdMeses = resumoFiltrado.length || 1;
       const wb = XLSX.utils.book_new();
 
       const wsResumo = XLSX.utils.json_to_sheet(resumoFiltrado.map(r => ({
         'ERP': r.fonte,
         'Mês': r.mes,
-        'Vendas (Qtd)': r.vendas,
-        'Faturamento Líquido (R$)': Number(r.faturamento.toFixed(2))
+        'Pedidos': r.vendas,
+        'Saída Líquida (R$)': Number(r.faturamento.toFixed(2))
       })));
-      XLSX.utils.book_append_sheet(wb, wsResumo, 'Resumo_Mensal');
+      XLSX.utils.book_append_sheet(wb, wsResumo, 'Giro_Mensal');
 
-      const vendMap = {};
-      (historicoData.vendedorasMes || []).filter(v => mesesSet.has(v.mes)).forEach(v => {
-        if (!vendMap[v.vendedora]) vendMap[v.vendedora] = { Vendedora: v.vendedora, Vendas: 0, Faturamento: 0 };
-        vendMap[v.vendedora].Vendas += v.vendas;
-        vendMap[v.vendedora].Faturamento += v.faturamento;
+      const estoqueAtualMap = {};
+      (rawProducts || []).forEach(p => { if (p.Código > 0) estoqueAtualMap[p.Código] = p.Estoque || 0; });
+
+      const prodMap = {};
+      (historicoData.produtosMes || []).filter(p => mesesSet.has(p.mes)).forEach(p => {
+        const key = p.codigo > 0 ? `C_${p.codigo}` : p.produto;
+        if (!prodMap[key]) prodMap[key] = { codigo: p.codigo, produto: p.produto, un: p.un, qtd: 0, faturamento: 0 };
+        prodMap[key].qtd += p.qtd;
+        prodMap[key].faturamento += p.faturamento;
       });
-      const wsVend = XLSX.utils.json_to_sheet(
-        Object.values(vendMap)
-          .sort((a, b) => b.Faturamento - a.Faturamento)
-          .map((v, i) => ({
-            'Posição': i + 1,
-            'Vendedor(a)': v.Vendedora,
-            'Vendas (Qtd)': v.Vendas,
-            'Faturamento (R$)': Number(v.Faturamento.toFixed(2))
-          }))
-      );
-      XLSX.utils.book_append_sheet(wb, wsVend, 'Ranking_Vendedoras');
 
-      XLSX.writeFile(wb, 'Historico_Consolidado_Superaco.xlsx');
+      const wsCompras = XLSX.utils.json_to_sheet(
+        Object.values(prodMap)
+          .sort((a, b) => b.faturamento - a.faturamento)
+          .map((p, i) => {
+            const mediaMes = p.qtd / qtdMeses;
+            const est = p.codigo > 0 && estoqueAtualMap[p.codigo] !== undefined ? estoqueAtualMap[p.codigo] : '';
+            const cobDias = (est !== '' && mediaMes > 0) ? Math.round((est / mediaMes) * 30) : '';
+            return {
+              'Posição': i + 1,
+              'Código': p.codigo || '',
+              'Produto': p.produto,
+              'Unidade': p.un,
+              'Saída Total Período': Number(p.qtd.toFixed(2)),
+              'Média Mensal': Number(mediaMes.toFixed(2)),
+              'Estoque Atual': est,
+              'Cobertura Estimada (Dias)': cobDias
+            };
+          })
+      );
+      XLSX.utils.book_append_sheet(wb, wsCompras, 'Planejamento_Compras');
+
+      XLSX.writeFile(wb, 'Planejamento_Compras_Demanda_Superaco.xlsx');
     }
 
     // =========================================================================
@@ -1498,50 +1230,7 @@
     // =========================================================================
     function formatUnidadesVendidas(p) {
       const qtd = p.Quantidade || 0;
-      return qtd !== 0 ? `${formatNum(qtd)} un` : '-';
-    }
-
-    function formatPesoVendido(p) {
-      const peso = p['Peso (kg)'] || 0;
-      return peso !== 0 ? formatKG(peso) : '-';
-    }
-
-    function formatPrecoMedio(p) {
-      const fat = p.Faturamento || 0;
-      const peso = p['Peso (kg)'] || 0;
-      const qtd = p.Quantidade || 0;
-      if (fat === 0) return '-';
-      if (qtd !== 0 && peso !== 0 && Math.abs(qtd - peso) > 0.01) {
-        return `<div>${formatBRL(fat / qtd)}/un</div><div class="text-[10px] text-brand-muted">${formatBRL(fat / peso)}/kg</div>`;
-      }
-      if (peso !== 0) return `${formatBRL(fat / peso)}/kg`;
-      if (qtd !== 0) return `${formatBRL(fat / qtd)}/un`;
-      return '-';
-    }
-
-    function formatPrecoMedioTexto(p) {
-      const fat = p.Faturamento || 0;
-      const peso = p['Peso (kg)'] || 0;
-      const qtd = p.Quantidade || 0;
-      if (fat === 0) return '-';
-      if (qtd !== 0) return `${formatBRL(fat / qtd)}/un`;
-      if (peso !== 0) return `${formatBRL(fat / peso)}/kg`;
-      return '-';
-    }
-
-    function getEasterDate(year) {
-      const a = year % 19, b = Math.floor(year / 100), c = year % 100;
-      const d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25);
-      const g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30;
-      const i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7;
-      const m = Math.floor((a + 11 * h + 22 * l) / 451);
-      const month = Math.floor((h + l - 7 * m + 114) / 31) - 1;
-      const day = ((h + l - 7 * m + 114) % 31) + 1;
-      return new Date(year, month, day);
-    }
-
-    function formatDateISO(dt) {
-      return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+      return qtd !== 0 ? `${formatNum(qtd)} un` : '-'; }  function formatPesoVendido(p) { const peso = p['Peso (kg)'] \vert{}\vert{} 0; return peso !== 0 ? formatKG(peso) : '-'; }  function formatPrecoMedio(p) { const custo = p.CustoPosicao \vert{}\vert{} p.CustoVenda \vert{}\vert{} 0; return custo > 0 ? formatBRL(custo) : '-'; }  function formatPrecoMedioTexto(p) { const custo = p.CustoPosicao \vert{}\vert{} p.CustoVenda \vert{}\vert{} 0; return custo > 0 ? formatBRL(custo) : '-'; }  function getEasterDate(year) { const a = year \% 19, b = Math.floor(year / 100), c = year \% 100; const d = Math.floor(b / 4), e = b \% 4, f = Math.floor((b + 8) / 25); const g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) \% 30; const i = Math.floor(c / 4), k = c \% 4, l = (32 + 2 * e + 2 * i - h - k) \% 7; const m = Math.floor((a + 11 * h + 22 * l) / 451); const month = Math.floor((h + l - 7 * m + 114) / 31) - 1; const day = ((h + l - 7 * m + 114) \% 31) + 1; return new Date(year, month, day); }  function formatDateISO(dt) { return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
     }
 
     function addDays(dt, days) {
@@ -1553,83 +1242,9 @@
     function getFeriadosBrasil(year) {
       const feriados = new Set([
         `${year}-01-01`, `${year}-04-21`, `${year}-05-01`, `${year}-09-07`,
-        `${year}-10-12`, `${year}-11-02`, `${year}-11-15`, `${year}-11-20`, `${year}-12-25`
-      ]);
-      const pascoa = getEasterDate(year);
-      feriados.add(formatDateISO(addDays(pascoa, -48)));
-      feriados.add(formatDateISO(addDays(pascoa, -47)));
-      feriados.add(formatDateISO(addDays(pascoa, -2)));
-      feriados.add(formatDateISO(addDays(pascoa, 60)));
-      return feriados;
-    }
-
-    function calcularDiasUteisEntreDatas(dataIniStr, dataFimStr) {
-      if (!dataIniStr || !dataFimStr) return 11.5;
-      const [y1, m1, d1] = dataIniStr.split('-').map(Number);
-      const [y2, m2, d2] = dataFimStr.split('-').map(Number);
-      const start = new Date(y1, m1 - 1, d1);
-      const end = new Date(y2, m2 - 1, d2);
-      if (isNaN(start.getTime()) || isNaN(end.getTime()) || start > end) return 0;
-
-      const feriadosCache = {};
-      let totalDias = 0;
-      let curr = new Date(start.getTime());
-
-      while (curr <= end) {
-        const year = curr.getFullYear();
-        if (!feriadosCache[year]) feriadosCache[year] = getFeriadosBrasil(year);
-        const iso = formatDateISO(curr);
-        const dayOfWeek = curr.getDay();
-        if (dayOfWeek !== 0 && !feriadosCache[year].has(iso)) {
-          totalDias += dayOfWeek === 6 ? 0.5 : 1.0;
-        }
-        curr.setDate(curr.getDate() + 1);
-      }
-      return totalDias;
-    }
-
-    function recalcularPeriodoDatas(reaplicar = true) {
-      const ini = document.getElementById('dataInicialInput').value;
-      const fim = document.getElementById('dataFinalInput').value;
-      const calculado = calcularDiasUteisEntreDatas(ini, fim);
-      if (calculado <= 0) {
-        document.getElementById('badgeDiasUteis').innerText = 'Período inválido';
-        return;
-      }
-
-      diasUteisPeriodo = calculado;
-      const formattedDias = String(diasUteisPeriodo).replace('.', ',');
-
-      document.getElementById('badgeDiasUteis').innerText = `${formattedDias} dias úteis`;
+        `${year}-10-12`, `${year}-11-02`, `${year}-11-15`, `${year}-11-20`, `${year}-12-25` ]); const pascoa = getEasterDate(year); feriados.add(formatDateISO(addDays(pascoa, -48))); feriados.add(formatDateISO(addDays(pascoa, -47))); feriados.add(formatDateISO(addDays(pascoa, -2))); feriados.add(formatDateISO(addDays(pascoa, 60))); return feriados; }  function calcularDiasUteisEntreDatas(dataIniStr, dataFimStr) { if (!dataIniStr \vert{}\vert{} !dataFimStr) return 13.5; const [y1, m1, d1] = dataIniStr.split('-').map(Number); const [y2, m2, d2] = dataFimStr.split('-').map(Number); const start = new Date(y1, m1 - 1, d1); const end = new Date(y2, m2 - 1, d2); if (isNaN(start.getTime()) \vert{}\vert{} isNaN(end.getTime()) \vert{}\vert{} start > end) return 0;  const feriadosCache = {}; let totalDias = 0; let curr = new Date(start.getTime());  while (curr <= end) { const year = curr.getFullYear(); if (!feriadosCache[year]) feriadosCache[year] = getFeriadosBrasil(year); const iso = formatDateISO(curr); const dayOfWeek = curr.getDay(); if (dayOfWeek !== 0 && !feriadosCache[year].has(iso)) { totalDias += dayOfWeek === 6 ? 0.5 : 1.0; } curr.setDate(curr.getDate() + 1); } return totalDias; }  function recalcularPeriodoDatas(reaplicar = true) { const ini = document.getElementById('dataInicialInput').value; const fim = document.getElementById('dataFinalInput').value; const calculado = calcularDiasUteisEntreDatas(ini, fim); if (calculado <= 0) { document.getElementById('badgeDiasUteis').innerText = 'Período inválido'; return; }  diasUteisPeriodo = calculado; const formattedDias = String(diasUteisPeriodo).replace('.', ',');  document.getElementById('badgeDiasUteis').innerText = `${formattedDias} dias úteis`;
       document.getElementById('header-dias-label').innerText = formattedDias;
-      document.getElementById('kpi-sub-cobertura').innerText = `Autonomia baseada no ritmo de ${formattedDias} dias úteis`;
-
-      if (reaplicar && allUploadedProducts.length > 0) {
-        aplicarFiltrosBase(false, true);
-      }
-    }
-
-    function parseNumericValue(rawVal) {
-      if (typeof rawVal === 'number') return isNaN(rawVal) ? 0 : rawVal;
-      if (rawVal === null || rawVal === undefined) return 0;
-      let str = String(rawVal).trim();
-      if (!str) return 0;
-      let isNegative = (str.startsWith('(') && str.endsWith(')')) || str.includes('-');
-      str = str.replace(/[R$\s()-]/g, '');
-      if (str.includes(',') && str.includes('.')) str = str.replace(/\./g, '').replace(',', '.');
-      else if (str.includes(',')) str = str.replace(',', '.');
-      const num = parseFloat(str) || 0;
-      return isNegative ? -Math.abs(num) : num;
-    }
-
-    function toggleFullscreen() {
-      if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {});
-      else if (document.exitFullscreen) document.exitFullscreen();
-    }
-
-    function switchTab(tabId) {
-      document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
-      const targetTab = document.getElementById(`tab-${tabId}`);
+      document.getElementById('kpi-sub-cobertura').innerText = `Autonomia baseada no ritmo de ${formattedDias} dias úteis`;  if (reaplicar && allUploadedProducts.length > 0) { aplicarFiltrosBase(false, true); } }  function parseNumericValue(rawVal) { if (typeof rawVal === 'number') return isNaN(rawVal) ? 0 : rawVal; if (rawVal === null \vert{}\vert{} rawVal === undefined) return 0; let str = String(rawVal).trim(); if (!str) return 0; let isNegative = (str.startsWith('(') && str.endsWith(')')) \vert{}\vert{} str.includes('-'); str = str.replace(/[R$\s()-]/g, ''); if (str.includes(',') && str.includes('.')) str = str.replace(/\./g, '').replace(',', '.'); else if (str.includes(',')) str = str.replace(',', '.'); const num = parseFloat(str) \vert{}\vert{} 0; return isNegative ? -Math.abs(num) : num; }  function toggleFullscreen() { if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {}); else if (document.exitFullscreen) document.exitFullscreen(); }  function switchTab(tabId) { document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active')); const targetTab = document.getElementById(`tab-${tabId}`);
       if (targetTab) targetTab.classList.add('active');
 
       const sections = [
@@ -1637,11 +1252,7 @@
         'curva-lucratividade', 'menos-vendidos', 'tabela-produtos', 'insights'
       ];
       sections.forEach(s => {
-        const el = document.getElementById(`content-${s}`);
-        if (el) el.classList.add('hidden');
-      });
-
-      const activeContent = document.getElementById(`content-${tabId}`);
+        const el = document.getElementById(`content-${s}`); if (el) el.classList.add('hidden'); });  const activeContent = document.getElementById(`content-${tabId}`);
       if (activeContent) activeContent.classList.remove('hidden');
     }
 
@@ -1718,14 +1329,14 @@
       salvarBaseParaSimulador(rawProducts);
       populateCategoryDropdown();
       updateDashboardData();
+      renderHistoricoView(); // Atualiza o cruzamento de cobertura histórica automaticamente
 
       if (syncCloud) {
         salvarOperacaoAtualNoFirebase();
       }
 
       if (showAlert) {
-        const modoTxt = incluirSucataBobina ? 'Base completa (com Sucata e Bobina CA 60)' : 'Sem Sucata e Bobina CA 60';
-        alert(`Planilhas carregadas e salvas no Firebase! (${modoTxt})\n- Faturamento Líquido: ${formatBRL(totalFatDinamico)}\n- Itens ativos: ${parsedList.length} SKUs`);
+        alert(`Estoque e giro atualizados no Firebase! (${parsedList.length} SKUs ativos)`);
       }
     }
 
@@ -1813,142 +1424,7 @@
             let cmvUnit = colCMV !== -1 ? parseNumericValue(row[colCMV]) : 0;
             let valEst = colValorEstoque !== -1 ? parseNumericValue(row[colValorEstoque]) : 0;
 
-            const key = cod > 0 ? `COD_${cod}` : lowerNome;
-
-            if (!itemMap[key]) {
-              itemMap[key] = {
-                Código: cod, Produto: nome, Grupo: grupo,
-                Faturamento: fat, Quantidade: qtd, 'Peso (kg)': peso,
-                Estoque: est, CustoPosicao: custo,
-                CustoVenda: custoVenda || cmvUnit, CMVUnit: cmvUnit || custoVenda,
-                ValorEstoque: valEst
-              };
-            } else {
-              const estAnterior = itemMap[key].Estoque || 0;
-              const custoAnterior = itemMap[key].CustoPosicao || 0;
-
-              itemMap[key].Faturamento += fat;
-              itemMap[key].Quantidade += qtd;
-              itemMap[key]['Peso (kg)'] += peso;
-
-              if (grupo !== 'GERAL' && itemMap[key].Grupo === 'GERAL') itemMap[key].Grupo = grupo;
-              if (custoVenda > 0) itemMap[key].CustoVenda = custoVenda;
-              if (cmvUnit > 0) itemMap[key].CMVUnit = cmvUnit;
-
-              if (colEstoque !== -1) itemMap[key].Estoque += est;
-              if (colCusto !== -1 && custo > 0) {
-                if (estAnterior + est > 0 && custoAnterior > 0) {
-                  itemMap[key].CustoPosicao = ((estAnterior * custoAnterior) + (est * custo)) / (estAnterior + est);
-                } else {
-                  itemMap[key].CustoPosicao = custo;
-                }
-              }
-              if (colValorEstoque !== -1) itemMap[key].ValorEstoque += valEst;
-            }
-          });
-        }
-      }
-
-      allUploadedProducts = Object.values(itemMap);
-      switchTab('visao-geral');
-      aplicarFiltrosBase(true, true);
-    }
-
-    function salvarBaseParaSimulador(lista) {
-      const itensComEstoque = lista
-        .filter(item => (item.Estoque || 0) > 0)
-        .map(item => {
-          const qtd = item.Estoque || 0;
-          const custoUnit = (item.CustoPosicao && item.CustoPosicao > 0)
-            ? item.CustoPosicao
-            : (qtd > 0 && item.ValorEstoque > 0 ? item.ValorEstoque / qtd : 0);
-
-          return {
-            codigo: item.Código || '',
-            produto: item.Produto,
-            grupo: item.Grupo || 'GERAL',
-            qtd: qtd,
-            custo: custoUnit,
-            diasCobertura: item.DiasCobertura !== undefined ? item.DiasCobertura : 999
-          };
-        });
-
-      localStorage.setItem('sankhya_simulador_ofertas_payload', JSON.stringify({
-        updatedAt: new Date().toISOString(),
-        items: itensComEstoque
-      }));
-    }
-
-    function enviarParaSimuladorOfertas() {
-      const base = currentDisplayedProducts.length > 0 ? currentDisplayedProducts : activeFilteredProducts;
-      if (!base || base.length === 0) {
-        alert("Carregue as planilhas antes de enviar para o Simulador de Ofertas.");
-        return;
-      }
-      const itensDisponiveis = base.filter(item => (item.Estoque || 0) > 0);
-      if (itensDisponiveis.length === 0) {
-        alert("Nenhum dos itens filtrados possui Qtd Disponível maior que zero.");
-        return;
-      }
-      salvarBaseParaSimulador(itensDisponiveis);
-      window.open(URL_SIMULADOR_OFERTAS, '_blank');
-    }
-
-    function generateGroupsFromProducts(products, totalGlobal) {
-      const groupsMap = {};
-      products.forEach(p => {
-        const gName = p.Grupo || 'OUTROS';
-        const fat = p.Faturamento || 0;
-        const valEst = p.ValorEstoque || ((p.Estoque || 0) * (p.CustoPosicao || 0));
-        if (!groupsMap[gName]) {
-          groupsMap[gName] = { name: gName, total: 0, weight: 0, skus: 0, stockValue: 0, stockQty: 0, soldQty: 0 };
-        }
-        groupsMap[gName].total += fat;
-        groupsMap[gName].weight += (p['Peso (kg)'] || 0);
-        groupsMap[gName].skus += 1;
-        groupsMap[gName].stockValue += valEst;
-        groupsMap[gName].stockQty += (p.Estoque || 0);
-        groupsMap[gName].soldQty += (p.Quantidade || 0);
-      });
-      return Object.values(groupsMap)
-        .map(g => {
-          const vendaDiariaGrupo = g.soldQty / (diasUteisPeriodo || 1);
-          const coberturaGrupo = g.stockQty <= 0 ? 0 : (vendaDiariaGrupo > 0 ? Math.round(g.stockQty / vendaDiariaGrupo) : 999);
-          return {
-            ...g,
-            coberturaDias: coberturaGrupo,
-            share: totalGlobal > 0 ? parseFloat(((g.total / totalGlobal) * 100).toFixed(2)) : 0
-          };
-        })
-        .sort((a, b) => b.total - a.total);
-    }
-
-    function populateCategoryDropdown() {
-      const select = document.getElementById('categoryFilter');
-      select.innerHTML = '<option value="ALL">Todos os Grupos</option>';
-      rawGroups.forEach(g => {
-        const opt = document.createElement('option');
-        opt.value = g.name;
-        opt.textContent = `${g.name} (${g.skus} SKUs)`;
-        select.appendChild(opt);
-      });
-    }
-
-    function updateDashboardData() {
-      const incluirSucataBobina = document.getElementById('toggleSucataBobina').checked;
-      const totalFat = rawProducts.reduce((acc, p) => acc + (p.Faturamento || 0), 0);
-      const totalWeight = rawProducts.reduce((acc, p) => acc + (p['Peso (kg)'] || 0), 0);
-      const totalDeadstockVal = deadstockList.reduce((acc, p) => acc + (p.ValorEstoque || 0), 0);
-      const precoMedioKgGlobal = totalWeight > 0 ? (totalFat / totalWeight) : 0;
-      
-      const prodsComVenda = rawProducts.filter(p => p.Quantidade > 0 && p.Estoque > 0 && p.DiasCobertura < 999);
-      const coberturaMedia = prodsComVenda.length > 0 
-        ? Math.round(prodsComVenda.reduce((acc, p) => acc + p.DiasCobertura, 0) / prodsComVenda.length) 
-        : 0;
-
-      document.getElementById('kpi-faturamento').innerText = formatBRL(totalFat);
-      document.getElementById('kpi-sub-faturamento').innerText = incluirSucataBobina
-        ? `${rawGroups.length} grupos ativos (base completa Sankhya)`
+            const key = cod > 0 ? `COD_${cod}` : lowerNome;  if (!itemMap[key]) { itemMap[key] = { Código: cod, Produto: nome, Grupo: grupo, Faturamento: fat, Quantidade: qtd, 'Peso (kg)': peso, Estoque: est, CustoPosicao: custo, CustoVenda: custoVenda \vert{}\vert{} cmvUnit, CMVUnit: cmvUnit \vert{}\vert{} custoVenda, ValorEstoque: valEst }; } else { const estAnterior = itemMap[key].Estoque \vert{}\vert{} 0; const custoAnterior = itemMap[key].CustoPosicao \vert{}\vert{} 0;  itemMap[key].Faturamento += fat; itemMap[key].Quantidade += qtd; itemMap[key]['Peso (kg)'] += peso;  if (grupo !== 'GERAL' && itemMap[key].Grupo === 'GERAL') itemMap[key].Grupo = grupo; if (custoVenda > 0) itemMap[key].CustoVenda = custoVenda; if (cmvUnit > 0) itemMap[key].CMVUnit = cmvUnit;  if (colEstoque !== -1) itemMap[key].Estoque += est; if (colCusto !== -1 && custo > 0) { if (estAnterior + est > 0 && custoAnterior > 0) { itemMap[key].CustoPosicao = ((estAnterior * custoAnterior) + (est * custo)) / (estAnterior + est); } else { itemMap[key].CustoPosicao = custo; } } if (colValorEstoque !== -1) itemMap[key].ValorEstoque += valEst; } }); } }  allUploadedProducts = Object.values(itemMap); switchTab('visao-geral'); aplicarFiltrosBase(true, true); }  function salvarBaseParaSimulador(lista) { const itensComEstoque = lista .filter(item => (item.Estoque \vert{}\vert{} 0) > 0) .map(item => { const qtd = item.Estoque \vert{}\vert{} 0; const custoUnit = (item.CustoPosicao && item.CustoPosicao > 0) ? item.CustoPosicao : (qtd > 0 && item.ValorEstoque > 0 ? item.ValorEstoque / qtd : 0);  return { codigo: item.Código \vert{}\vert{} '', produto: item.Produto, grupo: item.Grupo \vert{}\vert{} 'GERAL', qtd: qtd, custo: custoUnit, diasCobertura: item.DiasCobertura !== undefined ? item.DiasCobertura : 999 }; });  localStorage.setItem('sankhya_simulador_ofertas_payload', JSON.stringify({ updatedAt: new Date().toISOString(), items: itensComEstoque })); }  function enviarParaSimuladorOfertas() { const base = currentDisplayedProducts.length > 0 ? currentDisplayedProducts : activeFilteredProducts; if (!base \vert{}\vert{} base.length === 0) { alert("Carregue as planilhas antes de enviar para o Simulador de Ofertas."); return; } const itensDisponiveis = base.filter(item => (item.Estoque \vert{}\vert{} 0) > 0); if (itensDisponiveis.length === 0) { alert("Nenhum dos itens filtrados possui Qtd Disponível maior que zero."); return; } salvarBaseParaSimulador(itensDisponiveis); window.open(URL_SIMULADOR_OFERTAS, '_blank'); }  function generateGroupsFromProducts(products, totalGlobal) { const groupsMap = {}; products.forEach(p => { const gName = p.Grupo \vert{}\vert{} 'OUTROS'; const fat = p.Faturamento \vert{}\vert{} 0; const valEst = p.ValorEstoque \vert{}\vert{} ((p.Estoque \vert{}\vert{} 0) * (p.CustoPosicao \vert{}\vert{} 0)); if (!groupsMap[gName]) { groupsMap[gName] = { name: gName, total: 0, weight: 0, skus: 0, stockValue: 0, stockQty: 0, soldQty: 0 }; } groupsMap[gName].total += fat; groupsMap[gName].weight += (p['Peso (kg)'] \vert{}\vert{} 0); groupsMap[gName].skus += 1; groupsMap[gName].stockValue += valEst; groupsMap[gName].stockQty += (p.Estoque \vert{}\vert{} 0); groupsMap[gName].soldQty += (p.Quantidade \vert{}\vert{} 0); }); return Object.values(groupsMap) .map(g => { const vendaDiariaGrupo = g.soldQty / (diasUteisPeriodo \vert{}\vert{} 1); const coberturaGrupo = g.stockQty <= 0 ? 0 : (vendaDiariaGrupo > 0 ? Math.round(g.stockQty / vendaDiariaGrupo) : 999); return { ...g, coberturaDias: coberturaGrupo, share: totalGlobal > 0 ? parseFloat(((g.total / totalGlobal) * 100).toFixed(2)) : 0 }; }) .sort((a, b) => b.total - a.total); }  function populateCategoryDropdown() { const select = document.getElementById('categoryFilter'); select.innerHTML = '<option value="ALL">Todos os Grupos</option>'; rawGroups.forEach(g => { const opt = document.createElement('option'); opt.value = g.name; opt.textContent = `${g.name} (${g.skus} SKUs)`; select.appendChild(opt); }); }  function updateDashboardData() { const incluirSucataBobina = document.getElementById('toggleSucataBobina').checked; const totalFat = rawProducts.reduce((acc, p) => acc + (p.Faturamento \vert{}\vert{} 0), 0); const totalWeight = rawProducts.reduce((acc, p) => acc + (p['Peso (kg)'] \vert{}\vert{} 0), 0); const totalDeadstockVal = deadstockList.reduce((acc, p) => acc + (p.ValorEstoque \vert{}\vert{} 0), 0); const precoMedioKgGlobal = totalWeight > 0 ? (totalFat / totalWeight) : 0;  const prodsComVenda = rawProducts.filter(p => p.Quantidade > 0 && p.Estoque > 0 && p.DiasCobertura < 999); const coberturaMedia = prodsComVenda.length > 0 ? Math.round(prodsComVenda.reduce((acc, p) => acc + p.DiasCobertura, 0) / prodsComVenda.length) : 0;  document.getElementById('kpi-faturamento').innerText = formatBRL(totalFat); document.getElementById('kpi-sub-faturamento').innerText = incluirSucataBobina ? `${rawGroups.length} grupos ativos (base completa Sankhya)`
         : `${rawGroups.length} grupos ativos (sem sucata e Bobina CA 60)`;
       document.getElementById('kpi-peso').innerText = formatKG(totalWeight);
       document.getElementById('kpi-margem-kg').innerText = formatBRL(precoMedioKgGlobal) + '/kg';
@@ -1990,7 +1466,7 @@
           <td class="py-3 px-3 text-right font-bold text-amber-400">${p.Estoque.toLocaleString('pt-BR')}</td>
           <td class="py-3 px-3 text-right font-mono text-cyan-400">${formatBRL(p.CustoPosicao)}</td>
           <td class="py-3 px-3 text-right font-bold text-rose-400">${formatBRL(p.ValorEstoque)}</td>
-          <td class="py-3 px-3 text-center"><span class="bg-rose-500/20 text-rose-300 border border-rose-500/30 px-2 py-0.5 rounded text-[11px] font-semibold">Oferta de Combo com Curva A / Comissão Extra</span></td>
+          <td class="py-3 px-3 text-center"><span class="bg-rose-500/20 text-rose-300 border border-rose-500/30 px-2 py-0.5 rounded text-[11px] font-semibold">Não Recomprar / Queimar Saldo</span></td>
         </tr>
       `).join('');
     }
@@ -2052,16 +1528,16 @@
       if (!curvaLucroList || curvaLucroList.length === 0) return;
       const rows = curvaLucroList.map(p => ({
         'Posição': p.PosicaoLucro, 'Código': p.Código || '', 'Produto': p.Produto, 'Grupo': p.Grupo,
-        'Faturamento (R$)': Number((p.Faturamento || 0).toFixed(2)),
-        'CMV Vendido (R$)': Number((p.CMVVendido || 0).toFixed(2)),
+        'Saídas (R$)': Number((p.Faturamento || 0).toFixed(2)),
+        'CMV (R$)': Number((p.CMVVendido || 0).toFixed(2)),
         'Margem Bruta (R$)': Number((p.MargemBruta || 0).toFixed(2)),
         'Margem (%)': Number((p.MargemPct || 0).toFixed(2)),
-        'Curva Lucro': p.ClasseLucro
+        'Curva': p.ClasseLucro
       }));
       const ws = XLSX.utils.json_to_sheet(rows);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Curva_ABC_Margem');
-      XLSX.writeFile(wb, 'Curva_ABC_Margem_Lucratividade.xlsx');
+      XLSX.writeFile(wb, 'Curva_ABC_Contribuicao_Compras.xlsx');
     }
 
     function toggleTopGrupo(groupName) {
@@ -2080,301 +1556,14 @@
         let expandedHtml = '';
         if (isExpanded) {
           const skuItemsHtml = skusDoGrupo.map(sku => {
-            const vendaText = (sku.Quantidade || 0) !== 0 ? formatUnidadesVendidas(sku) : ((sku['Peso (kg)'] || 0) !== 0 ? formatPesoVendido(sku) : 'Sem venda');
+            const vendaText = (sku.Quantidade || 0) !== 0 ? formatUnidadesVendidas(sku) : ((sku['Peso (kg)'] || 0) !== 0 ? formatPesoVendido(sku) : 'Sem saída');
             const cobText = sku.Estoque <= 0 ? '0d' : (sku.DiasCobertura === 999 ? 'Sem Giro' : `${sku.DiasCobertura}d`);
-            const cobColor = sku.Estoque <= 0 ? 'text-rose-400' : (sku.DiasCobertura < 10 ? 'text-amber-400' : 'text-cyan-400');
+            const cobColor = sku.Estoque <= 0 ? 'text-rose-400' : (sku.DiasCobertura < 15 ? 'text-amber-400' : 'text-cyan-400');
             return `
               <div class="flex items-center justify-between py-1.5 px-2 border-b border-brand-border/30 last:border-none hover:bg-brand-card/70 rounded text-[10px] gap-2">
                 <div class="min-w-0 flex-1">
-                  <div class="text-white font-medium truncate"><span class="font-mono text-brand-muted mr-1">${sku.Código || '-'}</span> ${sku.Produto}</div>
-                  <div class="text-brand-muted">Venda: <span class="text-indigo-300 font-semibold">${vendaText}</span> • Disp: <span class="text-white">${sku.Estoque.toLocaleString('pt-BR')}</span></div>
+                  <div class="text-white font-medium truncate"><span class="font-mono text-brand-muted mr-1">${sku.Código \vert{}\vert{} '-'}</span> ${sku.Produto}</div>
+                  <div class="text-brand-muted">Saída: <span class="text-indigo-300 font-semibold">${vendaText}</span> • Disp: <span class="text-white">${sku.Estoque.toLocaleString('pt-BR')}</span></div>
                 </div>
                 <div class="text-right whitespace-nowrap">
                   <div class="font-bold text-emerald-400">${formatBRL(sku.Faturamento)}</div>
-                  <div class="font-mono ${cobColor}">Cob: ${cobText}</div>
-                </div>
-              </div>
-            `;
-          }).join('');
-          expandedHtml = `<div class="mt-2 pt-2 border-t border-brand-border/50 bg-[#0B0F17]/85 rounded-lg p-2 max-h-48 overflow-y-auto space-y-0.5">${skuItemsHtml}</div>`;
-        }
-
-        return `
-          <div class="p-2.5 rounded-xl bg-brand-bg/50 border ${isExpanded ? 'border-indigo-500/50 bg-brand-card/60' : 'border-brand-border/40'} transition">
-            <div onclick="toggleTopGrupo('${safeGroupName}')" class="flex items-center justify-between cursor-pointer select-none">
-              <div class="flex items-center gap-2.5 min-w-0">
-                <span class="w-5 h-5 rounded-md bg-indigo-500/20 text-indigo-400 text-xs font-bold flex items-center justify-center shrink-0">${idx + 1}</span>
-                <div class="min-w-0">
-                  <p class="font-semibold text-white text-xs truncate">${g.name}</p>
-                  <p class="text-[10px] text-brand-muted">${formatKG(g.weight)} • ${g.skus} SKUs</p>
-                </div>
-              </div>
-              <div class="text-right shrink-0 ml-2">
-                <p class="font-bold text-white text-xs">${formatBRL(g.total)}</p>
-                <span class="text-[10px] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.2 rounded font-medium">${g.share.toFixed(1)}% share</span>
-              </div>
-            </div>
-            ${expandedHtml}
-          </div>
-        `;
-      }).join('');
-    }
-
-    function toggleGrupoMenores(groupName) {
-      if (expandedMenoresGrupos.has(groupName)) expandedMenoresGrupos.delete(groupName);
-      else expandedMenoresGrupos.add(groupName);
-      renderMenoresGruposRows();
-    }
-
-    function renderMenoresGruposRows() {
-      const tbodyGrupos = document.getElementById('tableMenoresGrupos');
-      if (!tbodyGrupos) return;
-      tbodyGrupos.innerHTML = baixoGiroGruposList.map(g => {
-        const isExpanded = expandedMenoresGrupos.has(g.name);
-        const safeGroupName = g.name.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-        const skusDoGrupo = rawProducts.filter(p => p.Grupo === g.name).sort((a, b) => a.Faturamento - b.Faturamento);
-
-        let subTableHtml = '';
-        if (isExpanded) {
-          const skuRows = skusDoGrupo.map(sku => {
-            const valEstSku = sku.ValorEstoque !== 0 ? sku.ValorEstoque : ((sku.Estoque || 0) * (sku.CustoPosicao || 0));
-            return `
-              <tr class="border-b border-brand-border/30 last:border-none">
-                <td class="py-2 px-3 font-mono text-brand-muted">${sku.Código || '-'}</td>
-                <td class="py-2 px-3 font-medium text-white">${sku.Produto}</td>
-                <td class="py-2 px-3 text-right font-mono text-indigo-300">${formatUnidadesVendidas(sku)}</td>
-                <td class="py-2 px-3 text-right font-bold text-amber-400">${formatBRL(sku.Faturamento)}</td>
-                <td class="py-2 px-3 text-right font-mono text-white">${sku.Estoque.toLocaleString('pt-BR')}</td>
-                <td class="py-2 px-3 text-right font-mono text-cyan-400">${formatBRL(valEstSku)}</td>
-              </tr>
-            `;
-          }).join('');
-          subTableHtml = `<tr class="bg-[#0B0F17]/95"><td colspan="7" class="p-3 pl-8"><table class="w-full text-left text-[11px]"><tbody>${skuRows}</tbody></table></td></tr>`;
-        }
-
-        return `
-          <tr onclick="toggleGrupoMenores('${safeGroupName}')" class="hover:bg-brand-cardHover/80 transition cursor-pointer">
-            <td class="py-3 px-3 font-mono text-brand-muted">${g.PosicaoGrupo}º</td>
-            <td class="py-3 px-3 font-semibold text-white">${g.name} (${g.skus} SKUs)</td>
-            <td class="py-3 px-3 text-right font-bold text-amber-400">${formatBRL(g.total)}</td>
-            <td class="py-3 px-3 text-right font-mono text-brand-muted">${g.share.toFixed(2)}%</td>
-            <td class="py-3 px-3 text-right font-mono text-cyan-400">${formatBRL(g.stockValue)}</td>
-            <td class="py-3 px-3 text-right font-bold text-white">${g.stockQty <= 0 ? '0 dias' : (g.coberturaDias === 999 ? 'Sem Estoque' : g.coberturaDias + ' dias')}</td>
-            <td class="py-3 px-3 text-center"><span class="${g.DiagBadge} px-2 py-0.5 rounded text-[10px] font-bold border">${g.Diagnostico}</span></td>
-          </tr>
-          ${subTableHtml}
-        `;
-      }).join('');
-    }
-
-    function renderMenoresTabelas() {
-      const gruposComVenda = rawGroups.filter(g => g.total > 0);
-      const menosGrupos = [...gruposComVenda].reverse().slice(0, 10);
-
-      baixoGiroGruposList = menosGrupos.map((g, idx) => {
-        const pos = gruposComVenda.length - idx;
-        let diag = 'Giro Controlado', diagBadge = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30';
-        if (g.coberturaDias > 90 && g.stockValue > 500) { diag = 'Superestocado / Queima'; diagBadge = 'bg-rose-500/10 text-rose-400 border-rose-500/30'; }
-        else if (g.stockValue > g.total * 2) { diag = 'Estoque Alto p/ Venda'; diagBadge = 'bg-amber-500/10 text-amber-400 border-amber-500/30'; }
-        return { ...g, PosicaoGrupo: pos, Diagnostico: diag, DiagBadge: diagBadge };
-      });
-      renderMenoresGruposRows();
-
-      const tbodyProds = document.getElementById('tableMenoresProdutos');
-      const prodsComVenda = rawProducts.filter(p => p.Faturamento > 0);
-      const menosProds = [...prodsComVenda].sort((a, b) => a.Faturamento - b.Faturamento).slice(0, 20);
-
-      baixoGiroProdutosList = menosProds.map(p => {
-        const valEst = p.ValorEstoque !== 0 ? p.ValorEstoque : ((p.Estoque || 0) * (p.CustoPosicao || 0));
-        let acao = 'Monitorar Reposição', acaoBadge = 'bg-slate-500/10 text-slate-300 border-slate-500/30';
-        if (p.Estoque > 0 && p.DiasCobertura > 90) { acao = 'Superestocado — Ofertar Combo'; acaoBadge = 'bg-rose-500/10 text-rose-400 border-rose-500/30'; }
-        else if (p.Estoque === 0) { acao = 'Sob Encomenda (Estoque Zero)'; acaoBadge = 'bg-indigo-500/10 text-indigo-300 border-indigo-500/30'; }
-        else { acao = 'Baixa Demanda — Não Recomprar'; acaoBadge = 'bg-amber-500/10 text-amber-400 border-amber-500/30'; }
-        return { ...p, ValEstCalc: valEst, AcaoBaixoGiro: acao, AcaoBadge: acaoBadge };
-      });
-
-      tbodyProds.innerHTML = baixoGiroProdutosList.map(p => `
-        <tr class="hover:bg-brand-cardHover/60 transition">
-          <td class="py-3 px-3 font-mono text-brand-muted">${p.Código || '-'}</td>
-          <td class="py-3 px-3 font-semibold text-white">${p.Produto}</td>
-          <td class="py-3 px-3"><span class="bg-indigo-500/10 text-indigo-300 px-2 py-0.5 rounded text-[10px]">${p.Grupo}</span></td>
-          <td class="py-3 px-3 text-right font-mono text-indigo-300">${formatUnidadesVendidas(p)}</td>
-          <td class="py-3 px-3 text-right font-bold text-amber-400">${formatBRL(p.Faturamento)}</td>
-          <td class="py-3 px-3 text-right font-mono">${p.Estoque.toLocaleString('pt-BR')}</td>
-          <td class="py-3 px-3 text-right font-mono text-cyan-400">${formatBRL(p.ValEstCalc)}</td>
-          <td class="py-3 px-3 text-right font-bold text-emerald-400">${p.Estoque <= 0 ? '0 dias' : (p.DiasCobertura === 999 ? '999+ dias' : p.DiasCobertura + ' dias')}</td>
-          <td class="py-3 px-3 text-center"><span class="${p.AcaoBadge} px-2 py-0.5 rounded text-[10px] font-bold border">${p.AcaoBaixoGiro}</span></td>
-        </tr>
-      `).join('');
-    }
-
-    function exportBaixoGiroExcel() {
-      const wb = XLSX.utils.book_new();
-      const wsProds = XLSX.utils.json_to_sheet(baixoGiroProdutosList.map(p => ({
-        'Código': p.Código || '', 'Produto': p.Produto, 'Grupo': p.Grupo,
-        'Faturamento (R$)': Number((p.Faturamento || 0).toFixed(2)),
-        'Qtd Disponível': Number((p.Estoque || 0).toFixed(2)),
-        'Valor Estoque (R$)': Number((p.ValEstCalc || 0).toFixed(2)),
-        'Diagnóstico': p.AcaoBaixoGiro
-      })));
-      XLSX.utils.book_append_sheet(wb, wsProds, 'Produtos_Baixo_Giro');
-      XLSX.writeFile(wb, 'Relatorio_Menos_Vendidos_Baixo_Giro.xlsx');
-    }
-
-    function renderProductsTable(products) {
-      currentDisplayedProducts = products;
-      const tbody = document.getElementById('productsTableBody');
-      tbody.innerHTML = products.map((p, idx) => `
-        <tr class="hover:bg-brand-cardHover/60 transition">
-          <td class="py-3 px-3 font-mono text-brand-muted">${p['Posição'] || idx + 1}</td>
-          <td class="py-3 px-3 font-mono text-brand-muted">${p.Código || '-'}</td>
-          <td class="py-3 px-3 font-semibold text-white">${p.Produto}</td>
-          <td class="py-3 px-3"><span class="bg-indigo-500/10 text-indigo-300 px-2 py-0.5 rounded text-[10px]">${p.Grupo}</span></td>
-          <td class="py-3 px-3 text-right font-bold text-emerald-400">${formatBRL(p.Faturamento)}</td>
-          <td class="py-3 px-3 text-right font-mono text-indigo-300 font-semibold">${formatUnidadesVendidas(p)}</td>
-          <td class="py-3 px-3 text-right font-mono text-cyan-400">${formatPesoVendido(p)}</td>
-          <td class="py-3 px-3 text-right font-mono text-amber-300">${formatPrecoMedio(p)}</td>
-          <td class="py-3 px-3 text-right font-mono">${p.Estoque.toLocaleString('pt-BR')}</td>
-          <td class="py-3 px-3 text-right font-bold text-emerald-400">${p.Estoque <= 0 ? '0 dias' : (p.DiasCobertura === 999 ? 'Sem Giro' : p.DiasCobertura + ' dias')}</td>
-          <td class="py-3 px-3 text-center"><span class="bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded text-[10px] font-bold">${p.CurvaABC || 'Curva C'}</span></td>
-        </tr>
-      `).join('');
-    }
-
-    function updateCharts() {
-      Chart.defaults.font.family = 'Inter';
-      Chart.defaults.color = '#94A3B8';
-
-      const displayGroups = rawGroups.filter(g => g.total > 0).slice(0, 8);
-      const top3Share = displayGroups.slice(0, 3).reduce((acc, g) => acc + g.share, 0).toFixed(1);
-      document.getElementById('top3-summary').innerHTML = `Top 3 representam <b>${top3Share}%</b> das vendas`;
-
-      if (donutChartInstance) donutChartInstance.destroy();
-      donutChartInstance = new Chart(document.getElementById('groupDonutChart'), {
-        type: 'doughnut',
-        data: {
-          labels: displayGroups.map(g => g.name),
-          datasets: [{
-            data: displayGroups.map(g => g.total),
-            backgroundColor: ['#6366F1', '#10B981', '#06B6D4', '#F59E0B', '#EC4899', '#8B5CF6', '#3B82F6', '#64748B'],
-            borderWidth: 2, borderColor: '#151C2C'
-          }]
-        },
-        options: { responsive: true, maintainAspectRatio: false, cutout: '70%' }
-      });
-
-      const topProds = rawProducts.filter(p => p.Faturamento > 0).slice(0, 8);
-      if (topProds.length > 0) {
-        document.getElementById('top-product-champion').innerHTML = `Produto Campeão: <b>${topProds[0].Produto}</b>`;
-        document.getElementById('top-product-val').innerText = formatBRL(topProds[0].Faturamento);
-      }
-
-      if (barChartInstance) barChartInstance.destroy();
-      barChartInstance = new Chart(document.getElementById('topProductsChart'), {
-        type: 'bar',
-        data: {
-          labels: topProds.map(p => p.Produto.length > 20 ? p.Produto.substring(0, 20) + '...' : p.Produto),
-          datasets: [{ label: 'Faturamento (R$)', data: topProds.map(p => p.Faturamento), backgroundColor: '#10B981', borderRadius: 6 }]
-        },
-        options: { responsive: true, maintainAspectRatio: false }
-      });
-
-      const topGroupsComp = rawGroups.filter(g => g.total > 0).slice(0, 6);
-      if (compChartInstance) compChartInstance.destroy();
-      compChartInstance = new Chart(document.getElementById('groupComparisonChart'), {
-        type: 'bar',
-        data: {
-          labels: topGroupsComp.map(g => g.name),
-          datasets: [
-            { label: 'Faturamento (R$)', data: topGroupsComp.map(g => g.total), backgroundColor: '#6366F1', borderRadius: 6, yAxisID: 'y' },
-            { label: 'Peso (kg)', data: topGroupsComp.map(g => g.weight), backgroundColor: '#06B6D4', borderRadius: 6, yAxisID: 'y1' }
-          ]
-        },
-        options: {
-          responsive: true, maintainAspectRatio: false,
-          scales: {
-            y: { position: 'left', ticks: { callback: (v) => 'R$ ' + (v/1000) + 'k' } },
-            y1: { position: 'right', grid: { drawOnChartArea: false }, ticks: { callback: (v) => (v/1000) + ' Ton' } }
-          }
-        }
-      });
-    }
-
-    function updateInsights() {
-      if (rawGroups.length >= 3) {
-        const top3Names = rawGroups.slice(0, 3).map(g => g.name).join(', ');
-        const top3Val = rawGroups.slice(0, 3).reduce((acc, g) => acc + g.total, 0);
-        const top3Pct = rawGroups.slice(0, 3).reduce((acc, g) => acc + g.share, 0).toFixed(1);
-        document.getElementById('insight-concentracao').innerHTML = 
-          `Apenas <b>3 Grupos principais</b> (${top3Names}) representam <b>${top3Pct}% (${formatBRL(top3Val)})</b> de toda a receita comercial.`;
-      }
-      if (deadstockList.length > 0) {
-        const totalDeadVal = deadstockList.reduce((acc, p) => acc + (p.ValorEstoque || 0), 0);
-        document.getElementById('insight-cauda').innerHTML = 
-          `Existem <b>${deadstockList.length} SKUs em Saldo Disponível Parado</b> (Galpão + Acessórios) sem movimentação recente, totalizando <b>${formatBRL(totalDeadVal)}</b> em capital imobilizado.`;
-      }
-    }
-
-    function filterByCategory(category) {
-      activeFilteredProducts = category !== 'ALL' ? rawProducts.filter(p => p.Grupo === category) : [...rawProducts];
-      renderProductsTable(activeFilteredProducts);
-    }
-
-    function handleSearch(query) {
-      const term = query.toLowerCase();
-      const filtered = activeFilteredProducts.filter(p => 
-        p.Produto.toLowerCase().includes(term) || p.Grupo.toLowerCase().includes(term) || String(p.Código).includes(term)
-      );
-      renderProductsTable(filtered);
-    }
-
-    function generatePDFReport() {
-      const element = document.getElementById('pdf-report-area');
-      const opt = {
-        margin: 0.3, filename: 'Relatorio_Executivo_Comercial_Superaco.pdf',
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, backgroundColor: '#0B0F17' },
-        jsPDF: { unit: 'in', format: 'a4', orientation: 'landscape' }
-      };
-      html2pdf().set(opt).from(element).save();
-    }
-
-    function exportToExcel() {
-      if (!activeFilteredProducts || activeFilteredProducts.length === 0) return;
-      const rows = activeFilteredProducts.map((item, idx) => ({
-        'Posição': item['Posição'] || idx + 1, 'Código': item.Código || '', 'Produto': item.Produto, 'Grupo': item.Grupo,
-        'Faturamento (R$)': Number((item.Faturamento || 0).toFixed(2)),
-        'Qtd Vendida (Un)': Number((item.Quantidade || 0).toFixed(2)),
-        'Peso Vendido (kg)': Number((item['Peso (kg)'] || 0).toFixed(2)),
-        'Preço Médio': formatPrecoMedioTexto(item),
-        'Qtd Disponível': Number((item.Estoque || 0).toFixed(2)),
-        'Classe ABC': item.CurvaABC || 'Curva C'
-      }));
-      const ws = XLSX.utils.json_to_sheet(rows);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Ranking_Produtos');
-      XLSX.writeFile(wb, 'Ranking_Produtos_Completo.xlsx');
-    }
-
-    function exportDeadstockExcel() {
-      const listToExport = displayedDeadstockList.length > 0 ? displayedDeadstockList : deadstockList;
-      if (!listToExport || listToExport.length === 0) return;
-      const rows = listToExport.map(p => ({
-        'Código': p.Código || '', 'Descrição do Produto': p.Produto, 'Grupo': p.Grupo,
-        'Qtd Disponível': Number((p.Estoque || 0).toFixed(2)),
-        'Custo (R$)': Number((p.CustoPosicao || 0).toFixed(4)),
-        'Valor Disponível (R$)': Number((p.ValorEstoque || 0).toFixed(2))
-      }));
-      const ws = XLSX.utils.json_to_sheet(rows);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Estoque_Parado');
-      XLSX.writeFile(wb, 'Relatorio_Estoque_Disponivel_Parado.xlsx');
-    }
-
-    window.addEventListener('DOMContentLoaded', () => {
-      recalcularPeriodoDatas(false);
-      carregarDadosDoFirebase();
-    });
-  </script>
-</body>
-</html>
