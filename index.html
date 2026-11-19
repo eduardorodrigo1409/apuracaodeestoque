@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard Executivo & Inteligência de Estoque Sankhya</title>
+  <title>Dashboard Executivo & Inteligência Comercial — Grupo Superaço</title>
   
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -17,6 +17,10 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <!-- html2pdf para geração de relatórios PDF -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+  <!-- Firebase Compat SDK (Firestore) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
   <script>
     tailwind.config = {
@@ -73,12 +77,14 @@
               <i class="fa-solid fa-chart-line text-white text-lg"></i>
             </div>
             <div>
-              <div class="flex items-center gap-2">
-                <h1 class="font-bold text-base lg:text-lg text-white tracking-wide">Relatório Comercial & Estoque Disponível</h1>
-                <span class="bg-indigo-500/20 text-indigo-400 text-[11px] px-2 py-0.5 rounded-full border border-indigo-500/30 font-medium hidden sm:inline-block">Locais: Galpão & Acessórios</span>
+              <div class="flex items-center gap-2 flex-wrap">
+                <h1 class="font-bold text-base lg:text-lg text-white tracking-wide">Inteligência Comercial & Estoque — Grupo Superaço</h1>
+                <span id="firebase-status-badge" class="bg-amber-500/20 text-amber-300 text-[10px] px-2 py-0.5 rounded-full border border-amber-500/30 font-semibold flex items-center gap-1">
+                  <i class="fa-solid fa-cloud"></i> Conectando Firebase...
+                </span>
               </div>
               <p class="text-xs text-brand-muted" id="header-sub">
-                Análise alinhada ao Sankhya ERP (<span id="header-dias-label" class="text-amber-400 font-semibold">11</span> dias úteis — <span id="header-filtro-label">base completa alinhada ao Sankhya</span>)
+                Operação Sankhya (<span id="header-dias-label" class="text-amber-400 font-semibold">11,5</span> dias úteis — <span id="header-filtro-label">base completa alinhada ao Sankhya</span>)
               </p>
             </div>
           </div>
@@ -88,9 +94,38 @@
           </button>
         </div>
 
-        <div class="flex flex-wrap items-center gap-2 w-full xl:w-auto">
+        <div class="flex flex-wrap items-center gap-2 w-full xl:w-auto justify-end">
+          <!-- BOTÃO CARREGAR PLANILHAS OPERAÇÃO ATUAL (ESTOQUE & VENDAS PERÍODO) -->
+          <label class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-1.5 rounded-lg font-bold cursor-pointer transition flex items-center gap-1.5 shadow-lg" title="Carrega planilhas de Estoque (Galpão/Acessórios) e Vendas do período atual">
+            <i class="fa-solid fa-file-excel text-sm"></i> 
+            <span>Operação Atual</span>
+            <input type="file" id="excelFileInput" accept=".xlsx, .xls, .csv, .xml" multiple class="hidden" onchange="handleFileUpload(event)">
+          </label>
+
+          <!-- BOTÃO IMPORTAR PLANILHA CONSOLIDADA HISTÓRICA (TID + SANKHYA) -->
+          <label class="bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs px-3 py-1.5 rounded-lg font-extrabold cursor-pointer transition flex items-center gap-1.5 shadow-lg" title="Importa vendas_jan25_nov26_TID_Sankhya_v3.xlsx e salva no Firebase">
+            <i class="fa-solid fa-database text-sm"></i> 
+            <span>Histórico TID + Sankhya</span>
+            <input type="file" id="historicoExcelInput" accept=".xlsx, .xls" class="hidden" onchange="handleHistoricoConsolidadoUpload(event)">
+          </label>
+
+          <!-- BOTÃO GERAR RELATÓRIO PDF -->
+          <button onclick="generatePDFReport()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 shadow-lg">
+            <i class="fa-solid fa-file-pdf text-sm text-rose-300"></i>
+            <span>PDF Reunião</span>
+          </button>
+
+          <button onclick="toggleFullscreen()" class="hidden xl:flex p-2 text-brand-muted hover:text-white rounded-lg bg-brand-card border border-brand-border" title="Tela Cheia">
+            <i class="fa-solid fa-expand text-xs"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- SUB-BARRA DE CONTROLES OPERACIONAIS (DATAS E FILTROS) -->
+      <div id="operational-controls-bar" class="max-w-7xl mx-auto mt-2.5 pt-2.5 border-t border-brand-border/60 flex flex-wrap items-center justify-between gap-2">
+        <div class="flex flex-wrap items-center gap-2">
           <!-- TOGGLE SUCATA E BOBINA CA 60 -->
-          <label class="flex items-center gap-1.5 bg-brand-bg/90 border border-brand-border hover:border-indigo-500/50 px-2.5 py-1.5 rounded-lg cursor-pointer select-none transition" title="Ative para bater 100% com o faturamento e peso geral do Sankhya">
+          <label class="flex items-center gap-1.5 bg-brand-bg/90 border border-brand-border hover:border-indigo-500/50 px-2.5 py-1 rounded-lg cursor-pointer select-none transition">
             <input 
               type="checkbox" 
               id="toggleSucataBobina" 
@@ -101,61 +136,38 @@
             <span class="text-[11px] font-semibold text-brand-text whitespace-nowrap">Incluir Sucata e Bobina CA 60</span>
           </label>
 
-          <!-- SELETOR DE PERÍODO (DATA INICIAL E DATA FINAL) -->
+          <!-- SELETOR DE PERÍODO -->
           <div class="flex flex-wrap items-center gap-2 bg-brand-bg/90 border border-brand-border px-2.5 py-1 rounded-lg">
             <div class="flex items-center gap-1">
-              <label for="dataInicialInput" class="text-[11px] font-semibold text-amber-400 whitespace-nowrap">De:</label>
-              <input 
-                type="date" 
-                id="dataInicialInput" 
-                value="2026-11-01" 
-                onchange="recalcularPeriodoDatas()"
-                class="bg-transparent text-white font-semibold text-xs focus:outline-none border-b border-amber-500/40 focus:border-amber-400"
-              >
+              <label for="dataInicialInput" class="text-[11px] font-semibold text-amber-400">De:</label>
+              <input type="date" id="dataInicialInput" value="2026-11-01" onchange="recalcularPeriodoDatas()" class="bg-transparent text-white font-semibold text-xs focus:outline-none border-b border-amber-500/40">
             </div>
             <div class="flex items-center gap-1">
-              <label for="dataFinalInput" class="text-[11px] font-semibold text-amber-400 whitespace-nowrap">Até:</label>
-              <input 
-                type="date" 
-                id="dataFinalInput" 
-                value="2026-11-16" 
-                onchange="recalcularPeriodoDatas()"
-                class="bg-transparent text-white font-semibold text-xs focus:outline-none border-b border-amber-500/40 focus:border-amber-400"
-              >
+              <label for="dataFinalInput" class="text-[11px] font-semibold text-amber-400">Até:</label>
+              <input type="date" id="dataFinalInput" value="2026-11-16" onchange="recalcularPeriodoDatas()" class="bg-transparent text-white font-semibold text-xs focus:outline-none border-b border-amber-500/40">
             </div>
-            <span id="badgeDiasUteis" class="bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[11px] font-bold px-2 py-0.5 rounded whitespace-nowrap" title="Segunda a Sexta = 1 dia | Sábado = 0,5 dia | Domingos e Feriados = 0">
+            <span id="badgeDiasUteis" class="bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[11px] font-bold px-2 py-0.5 rounded whitespace-nowrap">
               11,5 dias úteis
             </span>
           </div>
+        </div>
 
-          <!-- BOTÃO CARREGAR PLANILHAS -->
-          <label class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-1.5 rounded-lg font-bold cursor-pointer transition flex items-center gap-1.5 shadow-lg">
-            <i class="fa-solid fa-file-excel text-sm"></i> 
-            <span>Carregar Planilhas</span>
-            <input type="file" id="excelFileInput" accept=".xlsx, .xls, .csv, .xml" multiple class="hidden" onchange="handleFileUpload(event)">
-          </label>
-
-          <!-- BOTÃO GERAR RELATÓRIO PDF -->
-          <button onclick="generatePDFReport()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 shadow-lg">
-            <i class="fa-solid fa-file-pdf text-sm text-rose-300"></i>
-            <span>PDF Reunião</span>
-          </button>
-
-          <div class="relative w-full sm:w-32">
+        <div class="flex flex-wrap items-center gap-2">
+          <div class="relative w-40 sm:w-48">
             <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-1/2 -translate-y-1/2 text-brand-muted text-xs"></i>
             <input 
               type="text" 
               id="searchInput"
-              placeholder="Buscar item..." 
+              placeholder="Buscar SKU ou grupo..." 
               oninput="handleSearch(this.value)"
-              class="w-full pl-7 pr-2 py-1.5 text-xs bg-brand-bg/80 border border-brand-border rounded-lg text-white placeholder-brand-muted focus:outline-none focus:border-indigo-500 transition"
+              class="w-full pl-7 pr-2 py-1 text-xs bg-brand-bg/80 border border-brand-border rounded-lg text-white placeholder-brand-muted focus:outline-none focus:border-indigo-500 transition"
             >
           </div>
 
           <select 
             id="categoryFilter" 
             onchange="filterByCategory(this.value)"
-            class="bg-brand-bg/80 border border-brand-border text-brand-text text-xs rounded-lg px-2 py-1.5 focus:outline-none focus:border-indigo-500 cursor-pointer max-w-[145px]"
+            class="bg-brand-bg/80 border border-brand-border text-brand-text text-xs rounded-lg px-2 py-1 focus:outline-none focus:border-indigo-500 cursor-pointer max-w-[160px]"
           >
             <option value="ALL">Todos os Grupos</option>
           </select>
@@ -166,112 +178,299 @@
     <!-- MAIN CONTAINER -->
     <main class="max-w-7xl mx-auto px-4 lg:px-8 py-6 flex-1 w-full space-y-6">
 
-      <!-- KPI CARDS GRID -->
-      <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        
-        <div class="glass-card rounded-2xl p-5 transition-all">
-          <div class="flex items-center justify-between text-brand-muted mb-3">
-            <span class="text-xs font-semibold uppercase tracking-wider">FATURAMENTO</span>
-            <div class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
-              <i class="fa-solid fa-dollar-sign text-sm"></i>
-            </div>
-          </div>
-          <div class="flex items-baseline justify-between">
-            <span class="text-2xl font-extrabold text-white tracking-tight" id="kpi-faturamento">R$ 0,00</span>
-            <span class="text-xs font-medium text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full flex items-center gap-1">
-              <i class="fa-solid fa-arrow-up text-[10px]"></i> Vendas
-            </span>
-          </div>
-          <div class="mt-3 w-full bg-brand-bg rounded-full h-1.5 overflow-hidden">
-            <div class="bg-gradient-to-r from-emerald-500 to-teal-400 h-1.5 rounded-full" style="width: 100%"></div>
-          </div>
-          <p class="text-[11px] text-brand-muted mt-2" id="kpi-sub-faturamento">vendas confirmadas (base completa Sankhya)</p>
-        </div>
-
-        <div class="glass-card rounded-2xl p-5 transition-all">
-          <div class="flex items-center justify-between text-brand-muted mb-3">
-            <span class="text-xs font-semibold uppercase tracking-wider">PESO</span>
-            <div class="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center">
-              <i class="fa-solid fa-weight-hanging text-sm"></i>
-            </div>
-          </div>
-          <div class="flex items-baseline justify-between">
-            <span class="text-2xl font-extrabold text-white tracking-tight" id="kpi-peso">0,00 kg</span>
-            <span class="text-xs font-medium text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded-full" id="kpi-margem-kg">
-              R$ 0,00/kg
-            </span>
-          </div>
-          <div class="mt-3 w-full bg-brand-bg rounded-full h-1.5 overflow-hidden">
-            <div class="bg-gradient-to-r from-indigo-500 to-purple-500 h-1.5 rounded-full" style="width: 82%"></div>
-          </div>
-          <p class="text-[11px] text-brand-muted mt-2" id="kpi-sub-peso">período filtrado</p>
-        </div>
-
-        <div class="glass-card rounded-2xl p-5 transition-all border border-rose-500/30">
-          <div class="flex items-center justify-between text-brand-muted mb-3">
-            <span class="text-xs font-semibold uppercase tracking-wider text-rose-400">Estoque Parado (Deadstock)</span>
-            <div class="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-400 flex items-center justify-center">
-              <i class="fa-solid fa-lock text-sm"></i>
-            </div>
-          </div>
-          <div class="flex items-baseline justify-between">
-            <span class="text-2xl font-extrabold text-rose-400 tracking-tight" id="kpi-estoque-parado-val">R$ 0,00</span>
-            <span class="text-xs font-medium text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded-full" id="kpi-estoque-parado-qtd">
-              0 SKUs
-            </span>
-          </div>
-          <div class="mt-3 w-full bg-brand-bg rounded-full h-1.5 overflow-hidden">
-            <div class="bg-gradient-to-r from-rose-500 to-red-600 h-1.5 rounded-full" style="width: 45%"></div>
-          </div>
-          <p class="text-[11px] text-brand-muted mt-2">Galpão + Acessórios sem vendas</p>
-        </div>
-
-        <div class="glass-card rounded-2xl p-5 transition-all">
-          <div class="flex items-center justify-between text-brand-muted mb-3">
-            <span class="text-xs font-semibold uppercase tracking-wider">Cobertura de Estoque</span>
-            <div class="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center">
-              <i class="fa-solid fa-hourglass-half text-sm"></i>
-            </div>
-          </div>
-          <div class="flex items-baseline justify-between">
-            <span class="text-2xl font-extrabold text-amber-400 tracking-tight" id="kpi-cobertura-dias">0 Dias</span>
-            <span class="text-xs font-medium text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">
-              Autonomia
-            </span>
-          </div>
-          <div class="mt-3 w-full bg-brand-bg rounded-full h-1.5 overflow-hidden">
-            <div class="bg-gradient-to-r from-amber-500 to-orange-500 h-1.5 rounded-full" style="width: 65%"></div>
-          </div>
-          <p class="text-[11px] text-brand-muted mt-2" id="kpi-sub-cobertura">Autonomia baseada no ritmo de 11,5 dias úteis</p>
-        </div>
-      </section>
-
       <!-- NAVIGATION TABS -->
-      <div class="flex border-b border-brand-border space-x-2 sm:space-x-4 text-xs font-semibold overflow-x-auto">
-        <button onclick="switchTab('visao-geral')" id="tab-visao-geral" class="nav-tab active px-4 py-2.5 text-brand-muted hover:text-white transition flex items-center gap-2 whitespace-nowrap">
-          <i class="fa-solid fa-chart-pie"></i> Visão Geral & Gráficos
+      <div class="flex border-b border-brand-border space-x-2 sm:space-x-3 text-xs font-semibold overflow-x-auto pb-0.5">
+        <button onclick="switchTab('historico-consolidado')" id="tab-historico-consolidado" class="nav-tab active px-4 py-2.5 text-amber-300 hover:text-white transition flex items-center gap-2 whitespace-nowrap">
+          <i class="fa-solid fa-clock-rotate-left text-amber-400"></i> Histórico Consolidado (TID + Sankhya)
+        </button>
+        <button onclick="switchTab('visao-geral')" id="tab-visao-geral" class="nav-tab px-4 py-2.5 text-brand-muted hover:text-white transition flex items-center gap-2 whitespace-nowrap">
+          <i class="fa-solid fa-chart-pie"></i> Operação & Estoque Atual
         </button>
         <button onclick="switchTab('estoque-parado')" id="tab-estoque-parado" class="nav-tab px-4 py-2.5 text-brand-muted hover:text-white transition flex items-center gap-2 whitespace-nowrap text-rose-400">
-          <i class="fa-solid fa-circle-exclamation"></i> Estoque Parado & Soluções (<span id="tab-count-deadstock">0</span>)
+          <i class="fa-solid fa-circle-exclamation"></i> Estoque Parado (<span id="tab-count-deadstock">0</span>)
         </button>
         <button onclick="switchTab('curva-lucratividade')" id="tab-curva-lucratividade" class="nav-tab px-4 py-2.5 text-brand-muted hover:text-white transition flex items-center gap-2 whitespace-nowrap text-emerald-400">
-          <i class="fa-solid fa-arrow-trend-up"></i> Curva ABC por Margem
+          <i class="fa-solid fa-arrow-trend-up"></i> Curva ABC Margem
         </button>
         <button onclick="switchTab('menos-vendidos')" id="tab-menos-vendidos" class="nav-tab px-4 py-2.5 text-brand-muted hover:text-white transition flex items-center gap-2 whitespace-nowrap">
-          <i class="fa-solid fa-arrow-down-short-wide text-amber-400"></i> Menos Vendidos (Baixo Giro)
+          <i class="fa-solid fa-arrow-down-short-wide text-amber-400"></i> Baixo Giro
         </button>
         <button onclick="switchTab('tabela-produtos')" id="tab-tabela-produtos" class="nav-tab px-4 py-2.5 text-brand-muted hover:text-white transition flex items-center gap-2 whitespace-nowrap">
-          <i class="fa-solid fa-list-check"></i> Detalhamento Completo (<span id="tab-count-items">0</span>)
+          <i class="fa-solid fa-list-check"></i> Detalhamento (<span id="tab-count-items">0</span>)
         </button>
         <button onclick="switchTab('insights')" id="tab-insights" class="nav-tab px-4 py-2.5 text-brand-muted hover:text-white transition flex items-center gap-2 whitespace-nowrap">
           <i class="fa-solid fa-lightbulb text-amber-400"></i> Plano Tático
         </button>
       </div>
 
-      <!-- TAB 1: VISÃO GERAL -->
-      <div id="content-visao-geral" class="space-y-6">
+      <!-- ===================================================================== -->
+      <!-- TAB 0: HISTÓRICO CONSOLIDADO (TID + SANKHYA — JAN/2025 A OUT/2026)     -->
+      <!-- ===================================================================== -->
+      <div id="content-historico-consolidado" class="space-y-6">
+        
+        <!-- BARRA DE FILTROS DO HISTÓRICO NA NUVEM -->
+        <div class="glass-panel rounded-2xl p-4 border-l-4 border-amber-500 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div>
+            <div class="flex items-center gap-2">
+              <h2 class="text-sm font-bold text-white">Histórico Unificado de Vendas (TID + Sankhya)</h2>
+              <span id="hist-cloud-timestamp" class="text-[10px] bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded-full">
+                Aguardando dados...
+              </span>
+            </div>
+            <p class="text-xs text-brand-muted mt-0.5">Faturamento líquido descontando devoluções. Meses em andamento são excluídos automaticamente por padrão.</p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2.5">
+            <!-- CHECKBOX MÊS EM ANDAMENTO -->
+            <label class="flex items-center gap-1.5 bg-brand-bg border border-brand-border px-2.5 py-1.5 rounded-lg cursor-pointer select-none" title="Marque para incluir meses abertos/em andamento presentes na planilha (ex: Nov/2026)">
+              <input type="checkbox" id="histIncluirMesAberto" onchange="renderHistoricoView()" class="accent-amber-500 w-3.5 h-3.5 rounded cursor-pointer">
+              <span class="text-[11px] font-semibold text-brand-muted">Incluir mês em andamento (Nov/26)</span>
+            </label>
+
+            <!-- FILTRO DE RECORTE DE PERÍODO -->
+            <select id="histFiltroRecorte" onchange="renderHistoricoView()" class="bg-brand-bg border border-amber-500/50 text-white text-xs font-semibold rounded-lg px-3 py-1.5 focus:outline-none focus:border-amber-400 cursor-pointer">
+              <option value="ALL">Todo o Histórico Fechado (Jan/25 – Out/26)</option>
+              <option value="2026">Ano 2026 (Jan – Out/26)</option>
+              <option value="2025">Ano 2025 Completo (Jan – Dez/25)</option>
+              <option value="TID">Somente Período TID (Jan/25 – Ago/26)</option>
+              <option value="SANKHYA">Somente Período Sankhya (Set – Out/26)</option>
+            </select>
+
+            <!-- FILTRO DE MÊS ESPECÍFICO -->
+            <select id="histFiltroMes" onchange="renderHistoricoView()" class="bg-brand-bg border border-brand-border text-brand-text text-xs rounded-lg px-3 py-1.5 focus:outline-none focus:border-indigo-500 cursor-pointer">
+              <option value="ALL">Todos os Meses do Recorte</option>
+            </select>
+
+            <!-- EXPORTAR HISTÓRICO EXCEL -->
+            <button onclick="exportHistoricoExcel()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 shadow">
+              <i class="fa-solid fa-file-excel"></i> Exportar Excel
+            </button>
+          </div>
+        </div>
+
+        <!-- KPIS DO HISTÓRICO CONSOLIDADO -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="glass-card rounded-2xl p-5">
+            <div class="flex items-center justify-between text-brand-muted mb-2">
+              <span class="text-xs font-semibold uppercase tracking-wider">Faturamento Líquido</span>
+              <div class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+                <i class="fa-solid fa-sack-dollar text-sm"></i>
+              </div>
+            </div>
+            <div class="text-2xl font-extrabold text-white tracking-tight" id="hist-kpi-faturamento">R$ 0,00</div>
+            <p class="text-[11px] text-emerald-400 mt-1.5 font-medium" id="hist-kpi-meses-count">0 meses consolidados</p>
+          </div>
+
+          <div class="glass-card rounded-2xl p-5">
+            <div class="flex items-center justify-between text-brand-muted mb-2">
+              <span class="text-xs font-semibold uppercase tracking-wider">Total de Vendas (Notas)</span>
+              <div class="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center">
+                <i class="fa-solid fa-receipt text-sm"></i>
+              </div>
+            </div>
+            <div class="text-2xl font-extrabold text-white tracking-tight" id="hist-kpi-vendas">0</div>
+            <p class="text-[11px] text-brand-muted mt-1.5" id="hist-kpi-media-mensal">Média: R$ 0,00 / mês</p>
+          </div>
+
+          <div class="glass-card rounded-2xl p-5">
+            <div class="flex items-center justify-between text-brand-muted mb-2">
+              <span class="text-xs font-semibold uppercase tracking-wider">Ticket Médio por Venda</span>
+              <div class="w-8 h-8 rounded-lg bg-cyan-500/10 text-cyan-400 flex items-center justify-center">
+                <i class="fa-solid fa-chart-simple text-sm"></i>
+              </div>
+            </div>
+            <div class="text-2xl font-extrabold text-cyan-400 tracking-tight" id="hist-kpi-ticket">R$ 0,00</div>
+            <p class="text-[11px] text-brand-muted mt-1.5" id="hist-kpi-melhor-mes">Pico: -</p>
+          </div>
+
+          <div class="glass-card rounded-2xl p-5">
+            <div class="flex items-center justify-between text-brand-muted mb-2">
+              <span class="text-xs font-semibold uppercase tracking-wider">Participação por ERP</span>
+              <div class="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center">
+                <i class="fa-solid fa-server text-sm"></i>
+              </div>
+            </div>
+            <div class="text-sm font-bold text-white space-y-1 mt-1" id="hist-kpi-erp-split">
+              <div class="flex justify-between"><span class="text-indigo-300">TID:</span> <span>R$ 0,00</span></div>
+              <div class="flex justify-between"><span class="text-emerald-300">Sankhya:</span> <span>R$ 0,00</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- GRÁFICOS DO HISTÓRICO: EVOLUÇÃO MENSAL + FORMA DE PAGAMENTO -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div class="glass-panel rounded-2xl p-5 lg:col-span-2 flex flex-col justify-between">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h3 class="font-bold text-white text-sm">Evolução Mensal de Faturamento (TID → Sankhya)</h3>
+                <p class="text-xs text-brand-muted">Barras em azul/índigo representam o período TID e em verde representam o Sankhya</p>
+              </div>
+            </div>
+            <div class="relative h-72">
+              <canvas id="histEvolucaoChart"></canvas>
+            </div>
+          </div>
+
+          <div class="glass-panel rounded-2xl p-5 flex flex-col justify-between">
+            <div class="mb-3">
+              <h3 class="font-bold text-white text-sm">Formas de Pagamento</h3>
+              <p class="text-xs text-brand-muted">Distribuição financeira no período selecionado</p>
+            </div>
+            <div class="relative h-52 flex items-center justify-center">
+              <canvas id="histPagamentoChart"></canvas>
+            </div>
+            <div id="histPagamentoLista" class="mt-3 pt-2 border-t border-brand-border space-y-1.5 text-xs max-h-36 overflow-y-auto"></div>
+          </div>
+        </div>
+
+        <!-- TABELAS DO HISTÓRICO: RANKING VENDEDORAS & TOP PRODUTOS -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
           
+          <!-- RANKING DE VENDEDORAS -->
+          <div class="glass-panel rounded-2xl p-5">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h3 class="font-bold text-white text-sm flex items-center gap-2">
+                  <i class="fa-solid fa-trophy text-amber-400"></i> Ranking Comercial por Vendedora
+                </h3>
+                <p class="text-xs text-brand-muted">Consolidado líquido (descontando devoluções) no período filtrado</p>
+              </div>
+            </div>
+            <div class="overflow-x-auto max-h-[420px]">
+              <table class="w-full text-left text-xs border-collapse">
+                <thead class="sticky top-0 bg-[#0B0F17]">
+                  <tr class="border-b border-brand-border text-brand-muted uppercase font-semibold">
+                    <th class="py-2.5 px-2.5">#</th>
+                    <th class="py-2.5 px-2.5">Vendedor(a)</th>
+                    <th class="py-2.5 px-2.5 text-right">Vendas</th>
+                    <th class="py-2.5 px-2.5 text-right">Ticket Médio</th>
+                    <th class="py-2.5 px-2.5 text-right">Faturamento (R$)</th>
+                    <th class="py-2.5 px-2.5 text-right">Share</th>
+                  </tr>
+                </thead>
+                <tbody id="histVendedorasBody" class="divide-y divide-brand-border/40">
+                  <tr><td colspan="6" class="text-center py-8 text-brand-muted">Importe a planilha consolidada no botão dourado acima para visualizar.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- TOP PRODUTOS DO PERÍODO -->
+          <div class="glass-panel rounded-2xl p-5">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h3 class="font-bold text-white text-sm flex items-center gap-2">
+                  <i class="fa-solid fa-cubes text-emerald-400"></i> Top Produtos no Período Filtrado
+                </h3>
+                <p class="text-xs text-brand-muted">Soma dos itens líderes (Top 20 mensais consolidados)</p>
+              </div>
+            </div>
+            <div class="overflow-x-auto max-h-[420px]">
+              <table class="w-full text-left text-xs border-collapse">
+                <thead class="sticky top-0 bg-[#0B0F17]">
+                  <tr class="border-b border-brand-border text-brand-muted uppercase font-semibold">
+                    <th class="py-2.5 px-2.5">#</th>
+                    <th class="py-2.5 px-2.5">Cód.</th>
+                    <th class="py-2.5 px-2.5">Produto</th>
+                    <th class="py-2.5 px-2.5 text-right">Qtd</th>
+                    <th class="py-2.5 px-2.5 text-right">Faturamento (R$)</th>
+                  </tr>
+                </thead>
+                <tbody id="histProdutosBody" class="divide-y divide-brand-border/40">
+                  <tr><td colspan="5" class="text-center py-8 text-brand-muted">Aguardando importação da base consolidada.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ===================================================================== -->
+      <!-- TAB 1: VISÃO GERAL (OPERAÇÃO ATUAL & ESTOQUE SANKHYA)                 -->
+      <!-- ===================================================================== -->
+      <div id="content-visao-geral" class="hidden space-y-6">
+        
+        <!-- KPI CARDS GRID OPERAÇÃO ATUAL -->
+        <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="glass-card rounded-2xl p-5 transition-all">
+            <div class="flex items-center justify-between text-brand-muted mb-3">
+              <span class="text-xs font-semibold uppercase tracking-wider">FATURAMENTO</span>
+              <div class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+                <i class="fa-solid fa-dollar-sign text-sm"></i>
+              </div>
+            </div>
+            <div class="flex items-baseline justify-between">
+              <span class="text-2xl font-extrabold text-white tracking-tight" id="kpi-faturamento">R$ 0,00</span>
+              <span class="text-xs font-medium text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full flex items-center gap-1">
+                <i class="fa-solid fa-arrow-up text-[10px]"></i> Vendas
+              </span>
+            </div>
+            <div class="mt-3 w-full bg-brand-bg rounded-full h-1.5 overflow-hidden">
+              <div class="bg-gradient-to-r from-emerald-500 to-teal-400 h-1.5 rounded-full" style="width: 100%"></div>
+            </div>
+            <p class="text-[11px] text-brand-muted mt-2" id="kpi-sub-faturamento">vendas confirmadas (base completa Sankhya)</p>
+          </div>
+
+          <div class="glass-card rounded-2xl p-5 transition-all">
+            <div class="flex items-center justify-between text-brand-muted mb-3">
+              <span class="text-xs font-semibold uppercase tracking-wider">PESO</span>
+              <div class="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center">
+                <i class="fa-solid fa-weight-hanging text-sm"></i>
+              </div>
+            </div>
+            <div class="flex items-baseline justify-between">
+              <span class="text-2xl font-extrabold text-white tracking-tight" id="kpi-peso">0,00 kg</span>
+              <span class="text-xs font-medium text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded-full" id="kpi-margem-kg">
+                R$ 0,00/kg
+              </span>
+            </div>
+            <div class="mt-3 w-full bg-brand-bg rounded-full h-1.5 overflow-hidden">
+              <div class="bg-gradient-to-r from-indigo-500 to-purple-500 h-1.5 rounded-full" style="width: 82%"></div>
+            </div>
+            <p class="text-[11px] text-brand-muted mt-2" id="kpi-sub-peso">período filtrado</p>
+          </div>
+
+          <div class="glass-card rounded-2xl p-5 transition-all border border-rose-500/30">
+            <div class="flex items-center justify-between text-brand-muted mb-3">
+              <span class="text-xs font-semibold uppercase tracking-wider text-rose-400">Estoque Parado (Deadstock)</span>
+              <div class="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-400 flex items-center justify-center">
+                <i class="fa-solid fa-lock text-sm"></i>
+              </div>
+            </div>
+            <div class="flex items-baseline justify-between">
+              <span class="text-2xl font-extrabold text-rose-400 tracking-tight" id="kpi-estoque-parado-val">R$ 0,00</span>
+              <span class="text-xs font-medium text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded-full" id="kpi-estoque-parado-qtd">
+                0 SKUs
+              </span>
+            </div>
+            <div class="mt-3 w-full bg-brand-bg rounded-full h-1.5 overflow-hidden">
+              <div class="bg-gradient-to-r from-rose-500 to-red-600 h-1.5 rounded-full" style="width: 45%"></div>
+            </div>
+            <p class="text-[11px] text-brand-muted mt-2">Galpão + Acessórios sem vendas</p>
+          </div>
+
+          <div class="glass-card rounded-2xl p-5 transition-all">
+            <div class="flex items-center justify-between text-brand-muted mb-3">
+              <span class="text-xs font-semibold uppercase tracking-wider">Cobertura de Estoque</span>
+              <div class="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center">
+                <i class="fa-solid fa-hourglass-half text-sm"></i>
+              </div>
+            </div>
+            <div class="flex items-baseline justify-between">
+              <span class="text-2xl font-extrabold text-amber-400 tracking-tight" id="kpi-cobertura-dias">0 Dias</span>
+              <span class="text-xs font-medium text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">
+                Autonomia
+              </span>
+            </div>
+            <div class="mt-3 w-full bg-brand-bg rounded-full h-1.5 overflow-hidden">
+              <div class="bg-gradient-to-r from-amber-500 to-orange-500 h-1.5 rounded-full" style="width: 65%"></div>
+            </div>
+            <p class="text-[11px] text-brand-muted mt-2" id="kpi-sub-cobertura">Autonomia baseada no ritmo de 11,5 dias úteis</p>
+          </div>
+        </section>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div class="glass-panel rounded-2xl p-5 flex flex-col justify-between">
             <div class="flex items-center justify-between mb-4">
               <div>
@@ -304,7 +503,6 @@
               <span class="text-emerald-400 font-semibold" id="top-product-val">R$ 0,00</span>
             </div>
           </div>
-
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -359,29 +557,16 @@
             <table class="w-full text-left text-xs border-collapse">
               <thead>
                 <tr class="border-b border-brand-border text-brand-muted uppercase font-semibold bg-[#0B0F17]">
-                  <th onclick="toggleSortDeadstock('Código')" class="py-3 px-3 sortable hover:text-white">
-                    Código <i id="sort-icon-Código" class="fa-solid fa-sort ml-1 opacity-50"></i>
-                  </th>
-                  <th onclick="toggleSortDeadstock('Produto')" class="py-3 px-3 sortable hover:text-white">
-                    Descrição do Produto <i id="sort-icon-Produto" class="fa-solid fa-sort ml-1 opacity-50"></i>
-                  </th>
-                  <th onclick="toggleSortDeadstock('Grupo')" class="py-3 px-3 sortable hover:text-white">
-                    Grupo <i id="sort-icon-Grupo" class="fa-solid fa-sort ml-1 opacity-50"></i>
-                  </th>
-                  <th onclick="toggleSortDeadstock('Estoque')" class="py-3 px-3 text-right sortable hover:text-white">
-                    Qtd Disponível <i id="sort-icon-Estoque" class="fa-solid fa-sort ml-1 opacity-50"></i>
-                  </th>
-                  <th onclick="toggleSortDeadstock('CustoPosicao')" class="py-3 px-3 text-right sortable hover:text-white">
-                    Custo Unit. (R$) <i id="sort-icon-CustoPosicao" class="fa-solid fa-sort ml-1 opacity-50"></i>
-                  </th>
-                  <th onclick="toggleSortDeadstock('ValorEstoque')" class="py-3 px-3 text-right sortable hover:text-white">
-                    Valor Disponível (R$) <i id="sort-icon-ValorEstoque" class="fa-solid fa-sort-down ml-1 text-rose-400"></i>
-                  </th>
+                  <th onclick="toggleSortDeadstock('Código')" class="py-3 px-3 sortable hover:text-white">Código</th>
+                  <th onclick="toggleSortDeadstock('Produto')" class="py-3 px-3 sortable hover:text-white">Descrição do Produto</th>
+                  <th onclick="toggleSortDeadstock('Grupo')" class="py-3 px-3 sortable hover:text-white">Grupo</th>
+                  <th onclick="toggleSortDeadstock('Estoque')" class="py-3 px-3 text-right sortable hover:text-white">Qtd Disponível</th>
+                  <th onclick="toggleSortDeadstock('CustoPosicao')" class="py-3 px-3 text-right sortable hover:text-white">Custo Unit. (R$)</th>
+                  <th onclick="toggleSortDeadstock('ValorEstoque')" class="py-3 px-3 text-right sortable hover:text-white">Valor Disponível (R$)</th>
                   <th class="py-3 px-3 text-center">Ação Tática Sugerida</th>
                 </tr>
               </thead>
-              <tbody id="tableDeadstock" class="divide-y divide-brand-border/40">
-              </tbody>
+              <tbody id="tableDeadstock" class="divide-y divide-brand-border/40"></tbody>
             </table>
           </div>
         </div>
@@ -397,12 +582,9 @@
               </h3>
               <p class="text-xs text-brand-muted">Ranking dos produtos pelo lucro real das vendas: <b>Faturamento - CMV (Qtd Vendida × Custo Médio)</b>.</p>
             </div>
-            <div class="flex flex-wrap items-center gap-2">
-              <span class="bg-emerald-500/20 text-emerald-300 text-xs px-3 py-1.5 rounded-lg border border-emerald-500/30 font-semibold">Análise de Lucro Real</span>
-              <button onclick="exportCurvaLucratividadeExcel()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-1.5 rounded-lg font-semibold transition flex items-center gap-1.5 shadow">
-                <i class="fa-solid fa-file-excel"></i> Exportar Excel (.xlsx)
-              </button>
-            </div>
+            <button onclick="exportCurvaLucratividadeExcel()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-1.5 rounded-lg font-semibold transition flex items-center gap-1.5 shadow">
+              <i class="fa-solid fa-file-excel"></i> Exportar Excel (.xlsx)
+            </button>
           </div>
 
           <div class="overflow-x-auto max-h-[500px]">
@@ -420,8 +602,7 @@
                   <th class="py-3 px-3 text-center">Curva Lucro</th>
                 </tr>
               </thead>
-              <tbody id="tableCurvaLucratividade" class="divide-y divide-brand-border/40">
-              </tbody>
+              <tbody id="tableCurvaLucratividade" class="divide-y divide-brand-border/40"></tbody>
             </table>
           </div>
         </div>
@@ -429,17 +610,15 @@
 
       <!-- TAB 4: MENOS VENDIDOS (BAIXO GIRO) -->
       <div id="content-menos-vendidos" class="hidden space-y-6">
-        
-        <!-- BLOCO 1: GRUPOS COM MENOR GIRO -->
         <div class="glass-panel rounded-2xl p-5 border-l-4 border-amber-500">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
             <div>
               <h3 class="font-bold text-white text-base flex items-center gap-2">
                 <i class="fa-solid fa-layer-group text-amber-400"></i> 10 Grupos com Menor Giro (Vendas &gt; R$ 0,00)
               </h3>
-              <p class="text-xs text-brand-muted">Clique em qualquer grupo abaixo para expandir e visualizar os SKUs que compõem o grupo e seu saldo em estoque.</p>
+              <p class="text-xs text-brand-muted">Clique em qualquer grupo abaixo para expandir e visualizar os SKUs.</p>
             </div>
-            <button onclick="exportBaixoGiroExcel()" class="bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 shadow self-start sm:self-auto">
+            <button onclick="exportBaixoGiroExcel()" class="bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 shadow">
               <i class="fa-solid fa-file-excel"></i> Exportar Excel (.xlsx)
             </button>
           </div>
@@ -457,21 +636,17 @@
                   <th class="py-3 px-3 text-center">Diagnóstico</th>
                 </tr>
               </thead>
-              <tbody id="tableMenoresGrupos" class="divide-y divide-brand-border/40">
-              </tbody>
+              <tbody id="tableMenoresGrupos" class="divide-y divide-brand-border/40"></tbody>
             </table>
           </div>
         </div>
 
-        <!-- BLOCO 2: PRODUTOS COM MENOR GIRO -->
         <div class="glass-panel rounded-2xl p-5 border-l-4 border-orange-500">
           <div class="mb-4">
             <h3 class="font-bold text-white text-base flex items-center gap-2">
               <i class="fa-solid fa-boxes-stacked text-orange-400"></i> Top 20 Produtos com Menor Giro (Cauda Longa com Venda)
             </h3>
-            <p class="text-xs text-brand-muted">SKUs que venderam pouco no período, ordenados pelo menor faturamento para avaliar queima de estoque ou descontinuação.</p>
           </div>
-
           <div class="overflow-x-auto max-h-[460px]">
             <table class="w-full text-left text-xs border-collapse">
               <thead class="sticky top-0 bg-[#0B0F17]">
@@ -487,12 +662,10 @@
                   <th class="py-3 px-3 text-center">Diagnóstico / Ação</th>
                 </tr>
               </thead>
-              <tbody id="tableMenoresProdutos" class="divide-y divide-brand-border/40">
-              </tbody>
+              <tbody id="tableMenoresProdutos" class="divide-y divide-brand-border/40"></tbody>
             </table>
           </div>
         </div>
-
       </div>
 
       <!-- TAB 5: DETALHAMENTO DE PRODUTOS -->
@@ -527,8 +700,7 @@
                   <th class="py-3 px-3 text-center">Classe ABC</th>
                 </tr>
               </thead>
-              <tbody id="productsTableBody" class="divide-y divide-brand-border/40">
-              </tbody>
+              <tbody id="productsTableBody" class="divide-y divide-brand-border/40"></tbody>
             </table>
           </div>
         </div>
@@ -574,9 +746,63 @@
   </div>
 
   <script>
+    // =========================================================================
+    // CONFIGURAÇÃO DO FIREBASE (PROJETO: dashboard-245b9)
+    // =========================================================================
+    const firebaseConfig = {
+      apiKey: "AIzaSyAdGaJ47mI9DCXFSmyR9sGuEj1453033EQ",
+      authDomain: "dashboard-245b9.firebaseapp.com",
+      projectId: "dashboard-245b9",
+      storageBucket: "dashboard-245b9.firebasestorage.app",
+      messagingSenderId: "962653906049",
+      appId: "1:962653906049:web:ec0df764fe7e9fd5f39980"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    function atualizarStatusFirebase(texto, cor = 'emerald') {
+      const badge = document.getElementById('firebase-status-badge');
+      if (!badge) return;
+      badge.className = cor === 'emerald'
+        ? 'bg-emerald-500/20 text-emerald-300 text-[10px] px-2 py-0.5 rounded-full border border-emerald-500/30 font-semibold flex items-center gap-1'
+        : (cor === 'rose'
+          ? 'bg-rose-500/20 text-rose-300 text-[10px] px-2 py-0.5 rounded-full border border-rose-500/30 font-semibold flex items-center gap-1'
+          : 'bg-amber-500/20 text-amber-300 text-[10px] px-2 py-0.5 rounded-full border border-amber-500/30 font-semibold flex items-center gap-1');
+      badge.innerHTML = `<i class="fa-solid fa-cloud"></i> ${texto}`;
+    }
+
+    // =========================================================================
+    // ESTADO GLOBAL: HISTÓRICO CONSOLIDADO (TID + SANKHYA)
+    // =========================================================================
+    let historicoData = {
+      updatedAt: null,
+      resumo: [],
+      pagamentos: [],
+      produtosMes: [],
+      vendedorasMes: []
+    };
+
+    let histEvolucaoChartInstance = null;
+    let histPagamentoChartInstance = null;
+
+    const NOMES_MESES_PT = {
+      '01': 'Jan', '02': 'Fev', '03': 'Mar', '04': 'Abr',
+      '05': 'Mai', '06': 'Jun', '07': 'Jul', '08': 'Ago',
+      '09': 'Set', '10': 'Out', '11': 'Nov', '12': 'Dez'
+    };
+
+    function formatMesLabel(ym) {
+      if (!ym || !ym.includes('-')) return ym || '';
+      const [y, m] = ym.split('-');
+      return `${NOMES_MESES_PT[m] || m}/${y.slice(2)}`;
+    }
+
+    // =========================================================================
+    // ESTADO GLOBAL: OPERAÇÃO ATUAL & ESTOQUE SANKHYA
+    // =========================================================================
     const URL_SIMULADOR_OFERTAS = '../Simulador-de-Ofertas/';
 
-    // Códigos que devem considerar EXCLUSIVAMENTE o saldo do local ACESSÓRIOS (ignorando GALPÃO)
     const CODIGOS_SOMENTE_ACESSORIOS = new Set([
       2252, 2248, 2251, 2249, 2247, 2250, 125, 134, 150, 152, 136, 137, 139, 144,
       1431, 407, 827, 217, 218, 219, 220, 221, 2137, 676, 680, 679, 685, 683, 686,
@@ -587,8 +813,8 @@
       889, 888, 887, 885, 892, 893, 898, 900, 914, 1454, 1460, 2345, 968, 1977, 979,
       1023, 982, 1674, 1313, 1325, 2261, 2257, 2259, 2258, 2256, 2260, 1421, 1426,
       1425, 1427, 1429, 1430, 1456, 2217, 1465, 1466, 1467, 1470, 1473, 1474, 1477,
-      1478, 1481, 1483, 2241, 2242, 2263, 2264, 2262, 2261, 2266, 2264, 2265, 2223,
-      2221, 2218, 2240, 1491, 1491, 1492, 2239, 1498
+      1478, 1481, 1483, 2241, 2242, 2263, 2264, 2262, 2266, 2265, 2223,
+      2221, 2218, 2240, 1491, 1492, 2239, 1498
     ]);
 
     function isSucataOuBobinaCA60(grupo, produto) {
@@ -626,16 +852,431 @@
     const formatKG = (val) => new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val || 0) + ' kg';
     const formatNum = (val) => new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(val || 0);
 
+    // =========================================================================
+    // SINCRONIZAÇÃO COM FIREBASE FIRESTORE (SALVAR E CARREGAR)
+    // =========================================================================
+    async function salvarHistoricoNoFirebase(payload) {
+      try {
+        atualizarStatusFirebase('Salvando histórico na nuvem...', 'amber');
+        await db.collection('dashboard_superaco').doc('historico_consolidado').set(payload);
+        atualizarStatusFirebase('Firebase Sincronizado', 'emerald');
+      } catch (err) {
+        console.error('Erro ao salvar histórico no Firebase:', err);
+        atualizarStatusFirebase('Erro ao salvar no Firebase', 'rose');
+        alert('Não foi possível salvar no Firebase. Verifique as regras do Firestore (Modo de Teste). Detalhe: ' + err.message);
+      }
+    }
+
+    async function salvarOperacaoAtualNoFirebase() {
+      if (!allUploadedProducts || allUploadedProducts.length === 0) return;
+      try {
+        atualizarStatusFirebase('Salvando operação na nuvem...', 'amber');
+        const payload = {
+          updatedAt: new Date().toISOString(),
+          dataInicial: document.getElementById('dataInicialInput').value,
+          dataFinal: document.getElementById('dataFinalInput').value,
+          incluirSucataBobina: document.getElementById('toggleSucataBobina').checked,
+          products: allUploadedProducts
+        };
+        await db.collection('dashboard_superaco').doc('operacao_atual').set(payload);
+        atualizarStatusFirebase('Firebase Sincronizado', 'emerald');
+      } catch (err) {
+        console.error('Erro ao salvar operação no Firebase:', err);
+        atualizarStatusFirebase('Erro ao salvar operação', 'rose');
+      }
+    }
+
+    async function carregarDadosDoFirebase() {
+      try {
+        atualizarStatusFirebase('Carregando dados da nuvem...', 'amber');
+
+        // 1. Carregar Histórico Consolidado (TID + Sankhya)
+        const docHist = await db.collection('dashboard_superaco').doc('historico_consolidado').get();
+        if (docHist.exists) {
+          historicoData = docHist.data();
+          popularSeletorMesesHistorico();
+          renderHistoricoView();
+        }
+
+        // 2. Carregar Operação Atual (Estoque & Vendas do Período)
+        const docOp = await db.collection('dashboard_superaco').doc('operacao_atual').get();
+        if (docOp.exists) {
+          const opData = docOp.data();
+          if (opData.dataInicial) document.getElementById('dataInicialInput').value = opData.dataInicial;
+          if (opData.dataFinal) document.getElementById('dataFinalInput').value = opData.dataFinal;
+          if (typeof opData.incluirSucataBobina === 'boolean') {
+            document.getElementById('toggleSucataBobina').checked = opData.incluirSucataBobina;
+          }
+          recalcularPeriodoDatas(false);
+          if (Array.isArray(opData.products) && opData.products.length > 0) {
+            allUploadedProducts = opData.products;
+            aplicarFiltrosBase(false, false);
+          }
+        }
+
+        atualizarStatusFirebase('Firebase Conectado', 'emerald');
+      } catch (err) {
+        console.error('Erro ao carregar do Firebase:', err);
+        atualizarStatusFirebase('Modo Offline / Verificar Regras', 'rose');
+      }
+    }
+
+    // =========================================================================
+    // IMPORTADOR DA PLANILHA CONSOLIDADA (vendas_jan25_nov26_TID_Sankhya_v3.xlsx)
+    // =========================================================================
+    async function handleHistoricoConsolidadoUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const buffer = await file.arrayBuffer();
+      const workbook = XLSX.read(new Uint8Array(buffer), { type: 'array' });
+
+      // Aba 1: Resumo
+      const resumoRows = workbook.Sheets['Resumo']
+        ? XLSX.utils.sheet_to_json(workbook.Sheets['Resumo'])
+        : [];
+      const resumoLimpo = resumoRows
+        .filter(r => r['Mês'] && /^\d{4}-\d{2}$/.test(String(r['Mês']).trim()))
+        .map(r => ({
+          fonte: String(r['Fonte'] || '').trim(),
+          mes: String(r['Mês']).trim(),
+          vendas: parseNumericValue(r['Vendas (qtd)']),
+          faturamento: parseNumericValue(r['Faturamento (R$)']),
+          semNF: parseNumericValue(r['das quais TID tipo 2 – sem nº de NF (R$)'])
+        }));
+
+      // Aba 2: Forma de pagamento
+      const pagRows = workbook.Sheets['Forma de pagamento']
+        ? XLSX.utils.sheet_to_json(workbook.Sheets['Forma de pagamento'])
+        : [];
+      const pagamentosLimpos = pagRows
+        .filter(r => r['Mês'] && /^\d{4}-\d{2}$/.test(String(r['Mês']).trim()))
+        .map(r => ({
+          fonte: String(r['Fonte'] || '').trim(),
+          mes: String(r['Mês']).trim(),
+          forma: String(r['Forma (agrupada)'] || 'Outros').trim(),
+          vendas: parseNumericValue(r['Vendas (qtd)']),
+          faturamento: parseNumericValue(r['Faturamento (R$)'])
+        }));
+
+      // Aba 4: Produtos mês a mês
+      const prodRows = workbook.Sheets['Produtos mês a mês']
+        ? XLSX.utils.sheet_to_json(workbook.Sheets['Produtos mês a mês'])
+        : [];
+      const produtosLimpos = prodRows
+        .filter(r => r['Mês'] && /^\d{4}-\d{2}$/.test(String(r['Mês']).trim()))
+        .map(r => ({
+          fonte: String(r['Fonte'] || '').trim(),
+          mes: String(r['Mês']).trim(),
+          codigo: parseInt(r['Código']) || 0,
+          produto: String(r['Produto'] || '').trim(),
+          un: String(r['Un.'] || '').trim(),
+          qtd: parseNumericValue(r['Quantidade']),
+          faturamento: parseNumericValue(r['Faturamento (R$)'])
+        }));
+
+      // Aba 6: Vendedoras mês a mês
+      const vendRows = workbook.Sheets['Vendedoras mês a mês']
+        ? XLSX.utils.sheet_to_json(workbook.Sheets['Vendedoras mês a mês'])
+        : [];
+      const vendedorasLimpos = vendRows
+        .filter(r => r['Mês'] && /^\d{4}-\d{2}$/.test(String(r['Mês']).trim()))
+        .map(r => ({
+          fonte: String(r['Fonte'] || '').trim(),
+          mes: String(r['Mês']).trim(),
+          vendedora: String(r['Vendedor(a)'] || '<SEM VENDEDOR>').trim(),
+          vendas: parseNumericValue(r['Vendas (qtd)']),
+          faturamento: parseNumericValue(r['Faturamento (R$)'])
+        }));
+
+      if (resumoLimpo.length === 0) {
+        alert('Não foi possível encontrar a aba "Resumo" no formato esperado da planilha consolidada.');
+        return;
+      }
+
+      historicoData = {
+        updatedAt: new Date().toISOString(),
+        resumo: resumoLimpo,
+        pagamentos: pagamentosLimpos,
+        produtosMes: produtosLimpos,
+        vendedorasMes: vendedorasLimpos
+      };
+
+      popularSeletorMesesHistorico();
+      renderHistoricoView();
+      switchTab('historico-consolidado');
+
+      await salvarHistoricoNoFirebase(historicoData);
+
+      const fechadoAteOut = resumoLimpo
+        .filter(r => r.mes !== '2026-11')
+        .reduce((acc, r) => acc + r.faturamento, 0);
+
+      alert(`Histórico Consolidado importado e salvo no Firebase!\n- Período fechado (Jan/25 a Out/26): ${formatBRL(fechadoAteOut)}\n- Novembro/2026 (em andamento) excluído automaticamente por padrão.`);
+    }
+
+    function popularSeletorMesesHistorico() {
+      const select = document.getElementById('histFiltroMes');
+      if (!select) return;
+      const valorAtual = select.value;
+      select.innerHTML = '<option value="ALL">Todos os Meses do Recorte</option>';
+
+      const mesesUnicos = [...new Set((historicoData.resumo || []).map(r => r.mes))].sort();
+      mesesUnicos.forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m;
+        const fonteItem = (historicoData.resumo || []).find(r => r.mes === m);
+        const tagAberto = m === '2026-11' ? ' (Em andamento)' : '';
+        opt.textContent = `${formatMesLabel(m)} (${m}) — ${fonteItem ? fonteItem.fonte : ''}${tagAberto}`;
+        select.appendChild(opt);
+      });
+
+      if ([...select.options].some(o => o.value === valorAtual)) {
+        select.value = valorAtual;
+      }
+    }
+
+    function getMesesFiltradosHistorico() {
+      const incluirMesAberto = document.getElementById('histIncluirMesAberto').checked;
+      const recorte = document.getElementById('histFiltroRecorte').value;
+      const mesEspecifico = document.getElementById('histFiltroMes').value;
+
+      // Identifica o último mês da base (2026-11) como mês em andamento
+      const todosMeses = [...new Set((historicoData.resumo || []).map(r => r.mes))].sort();
+      const mesEmAndamento = todosMeses.length > 0 ? todosMeses[todosMeses.length - 1] : '2026-11';
+
+      return (historicoData.resumo || []).filter(r => {
+        if (!incluirMesAberto && r.mes === mesEmAndamento && r.mes === '2026-11') return false;
+        if (recorte === '2026' && !r.mes.startsWith('2026-')) return false;
+        if (recorte === '2025' && !r.mes.startsWith('2025-')) return false;
+        if (recorte === 'TID' && r.fonte.toUpperCase() !== 'TID') return false;
+        if (recorte === 'SANKHYA' && r.fonte.toUpperCase() !== 'SANKHYA') return false;
+        if (mesEspecifico !== 'ALL' && r.mes !== mesEspecifico) return false;
+        return true;
+      });
+    }
+
+    function renderHistoricoView() {
+      const tsEl = document.getElementById('hist-cloud-timestamp');
+      if (historicoData.updatedAt) {
+        const dt = new Date(historicoData.updatedAt);
+        tsEl.innerText = `Nuvem atualizada em ${dt.toLocaleDateString('pt-BR')} às ${dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+      }
+
+      const resumoFiltrado = getMesesFiltradosHistorico();
+      const mesesAtivosSet = new Set(resumoFiltrado.map(r => r.mes));
+
+      const totalFat = resumoFiltrado.reduce((acc, r) => acc + r.faturamento, 0);
+      const totalVendas = resumoFiltrado.reduce((acc, r) => acc + r.vendas, 0);
+      const qtdMeses = resumoFiltrado.length;
+      const mediaMensal = qtdMeses > 0 ? totalFat / qtdMeses : 0;
+      const ticketMedio = totalVendas > 0 ? totalFat / totalVendas : 0;
+
+      const fatTID = resumoFiltrado.filter(r => r.fonte.toUpperCase() === 'TID').reduce((acc, r) => acc + r.faturamento, 0);
+      const fatSankhya = resumoFiltrado.filter(r => r.fonte.toUpperCase() === 'SANKHYA').reduce((acc, r) => acc + r.faturamento, 0);
+
+      let melhorMes = null;
+      resumoFiltrado.forEach(r => {
+        if (!melhorMes || r.faturamento > melhorMes.faturamento) melhorMes = r;
+      });
+
+      document.getElementById('hist-kpi-faturamento').innerText = formatBRL(totalFat);
+      document.getElementById('hist-kpi-meses-count').innerText = `${qtdMeses} ${qtdMeses === 1 ? 'mês consolidado' : 'meses consolidados'}`;
+      document.getElementById('hist-kpi-vendas').innerText = totalVendas.toLocaleString('pt-BR');
+      document.getElementById('hist-kpi-media-mensal').innerText = `Média: ${formatBRL(mediaMensal)} / mês`;
+      document.getElementById('hist-kpi-ticket').innerText = formatBRL(ticketMedio);
+      document.getElementById('hist-kpi-melhor-mes').innerText = melhorMes
+        ? `Pico: ${formatMesLabel(melhorMes.mes)} (${formatBRL(melhorMes.faturamento)})`
+        : 'Pico: -';
+
+      document.getElementById('hist-kpi-erp-split').innerHTML = `
+        <div class="flex justify-between"><span class="text-indigo-300">TID:</span> <span>${formatBRL(fatTID)}</span></div>
+        <div class="flex justify-between"><span class="text-emerald-300">Sankhya:</span> <span>${formatBRL(fatSankhya)}</span></div>
+      `;
+
+      // 1. Gráfico de Evolução Mensal
+      if (histEvolucaoChartInstance) histEvolucaoChartInstance.destroy();
+      const ctxEvol = document.getElementById('histEvolucaoChart');
+      if (ctxEvol && resumoFiltrado.length > 0) {
+        histEvolucaoChartInstance = new Chart(ctxEvol, {
+          type: 'bar',
+          data: {
+            labels: resumoFiltrado.map(r => `${formatMesLabel(r.mes)} (${r.fonte})`),
+            datasets: [{
+              label: 'Faturamento Líquido (R$)',
+              data: resumoFiltrado.map(r => r.faturamento),
+              backgroundColor: resumoFiltrado.map(r => r.fonte.toUpperCase() === 'SANKHYA' ? '#10B981' : '#6366F1'),
+              borderRadius: 6
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: (ctx) => `Faturamento: ${formatBRL(ctx.raw)}`
+                }
+              }
+            },
+            scales: {
+              y: {
+                ticks: { callback: (v) => 'R$ ' + (v / 1000000).toFixed(1) + 'M' }
+              }
+            }
+          }
+        });
+      }
+
+      // 2. Formas de Pagamento Filtradas
+      const pagMap = {};
+      (historicoData.pagamentos || [])
+        .filter(p => mesesAtivosSet.has(p.mes))
+        .forEach(p => {
+          let labelForma = p.forma;
+          if (labelForma.startsWith('À vista')) labelForma = 'À vista (TID)';
+          if (!pagMap[labelForma]) pagMap[labelForma] = { forma: labelForma, faturamento: 0, vendas: 0 };
+          pagMap[labelForma].faturamento += p.faturamento;
+          pagMap[labelForma].vendas += p.vendas;
+        });
+
+      const pagList = Object.values(pagMap).sort((a, b) => b.faturamento - a.faturamento);
+      const totalPagFat = pagList.reduce((acc, p) => acc + p.faturamento, 0);
+
+      if (histPagamentoChartInstance) histPagamentoChartInstance.destroy();
+      const ctxPag = document.getElementById('histPagamentoChart');
+      if (ctxPag && pagList.length > 0) {
+        histPagamentoChartInstance = new Chart(ctxPag, {
+          type: 'doughnut',
+          data: {
+            labels: pagList.map(p => p.forma),
+            datasets: [{
+              data: pagList.map(p => p.faturamento),
+              backgroundColor: ['#10B981', '#6366F1', '#F59E0B', '#06B6D4', '#EC4899', '#8B5CF6'],
+              borderWidth: 2,
+              borderColor: '#151C2C'
+            }]
+          },
+          options: { responsive: true, maintainAspectRatio: false, cutout: '68%', plugins: { legend: { display: false } } }
+        });
+      }
+
+      document.getElementById('histPagamentoLista').innerHTML = pagList.map(p => {
+        const share = totalPagFat > 0 ? ((p.faturamento / totalPagFat) * 100).toFixed(1) : '0.0';
+        return `
+          <div class="flex items-center justify-between py-1 border-b border-brand-border/30 last:border-none">
+            <span class="text-white truncate pr-2">${p.forma}</span>
+            <span class="font-mono text-emerald-400 whitespace-nowrap">${formatBRL(p.faturamento)} <span class="text-brand-muted">(${share}%)</span></span>
+          </div>
+        `;
+      }).join('');
+
+      // 3. Ranking de Vendedoras Filtrado
+      const vendMap = {};
+      (historicoData.vendedorasMes || [])
+        .filter(v => mesesAtivosSet.has(v.mes))
+        .forEach(v => {
+          if (!vendMap[v.vendedora]) vendMap[v.vendedora] = { vendedora: v.vendedora, vendas: 0, faturamento: 0 };
+          vendMap[v.vendedora].vendas += v.vendas;
+          vendMap[v.vendedora].faturamento += v.faturamento;
+        });
+
+      const vendList = Object.values(vendMap).sort((a, b) => b.faturamento - a.faturamento);
+      const vendBody = document.getElementById('histVendedorasBody');
+      if (vendList.length > 0) {
+        vendBody.innerHTML = vendList.map((v, idx) => {
+          const ticket = v.vendas > 0 ? v.faturamento / v.vendas : 0;
+          const share = totalFat > 0 ? ((v.faturamento / totalFat) * 100).toFixed(1) : '0.0';
+          return `
+            <tr class="hover:bg-brand-cardHover/60 transition">
+              <td class="py-2.5 px-2.5 font-mono text-brand-muted">${idx + 1}º</td>
+              <td class="py-2.5 px-2.5 font-semibold text-white">${v.vendedora}</td>
+              <td class="py-2.5 px-2.5 text-right font-mono text-indigo-300">${v.vendas.toLocaleString('pt-BR')}</td>
+              <td class="py-2.5 px-2.5 text-right font-mono text-cyan-400">${formatBRL(ticket)}</td>
+              <td class="py-2.5 px-2.5 text-right font-bold ${v.faturamento < 0 ? 'text-rose-400' : 'text-emerald-400'}">${formatBRL(v.faturamento)}</td>
+              <td class="py-2.5 px-2.5 text-right font-mono text-brand-muted">${share}%</td>
+            </tr>
+          `;
+        }).join('');
+      }
+
+      // 4. Top Produtos Filtrados
+      const prodMap = {};
+      (historicoData.produtosMes || [])
+        .filter(p => mesesAtivosSet.has(p.mes))
+        .forEach(p => {
+          const key = p.codigo > 0 ? `C_${p.codigo}` : p.produto;
+          if (!prodMap[key]) prodMap[key] = { codigo: p.codigo, produto: p.produto, un: p.un, qtd: 0, faturamento: 0 };
+          prodMap[key].qtd += p.qtd;
+          prodMap[key].faturamento += p.faturamento;
+        });
+
+      const prodList = Object.values(prodMap).sort((a, b) => b.faturamento - a.faturamento).slice(0, 50);
+      const prodBody = document.getElementById('histProdutosBody');
+      if (prodList.length > 0) {
+        prodBody.innerHTML = prodList.map((p, idx) => `
+          <tr class="hover:bg-brand-cardHover/60 transition">
+            <td class="py-2.5 px-2.5 font-mono text-brand-muted">${idx + 1}º</td>
+            <td class="py-2.5 px-2.5 font-mono text-brand-muted">${p.codigo || '-'}</td>
+            <td class="py-2.5 px-2.5 font-semibold text-white">${p.produto}</td>
+            <td class="py-2.5 px-2.5 text-right font-mono text-indigo-300">${formatNum(p.qtd)} ${p.un}</td>
+            <td class="py-2.5 px-2.5 text-right font-bold text-emerald-400">${formatBRL(p.faturamento)}</td>
+          </tr>
+        `).join('');
+      }
+    }
+
+    function exportHistoricoExcel() {
+      const resumoFiltrado = getMesesFiltradosHistorico();
+      if (!resumoFiltrado || resumoFiltrado.length === 0) {
+        alert('Nenhum dado histórico carregado para exportar.');
+        return;
+      }
+
+      const mesesSet = new Set(resumoFiltrado.map(r => r.mes));
+      const wb = XLSX.utils.book_new();
+
+      const wsResumo = XLSX.utils.json_to_sheet(resumoFiltrado.map(r => ({
+        'ERP': r.fonte,
+        'Mês': r.mes,
+        'Vendas (Qtd)': r.vendas,
+        'Faturamento Líquido (R$)': Number(r.faturamento.toFixed(2))
+      })));
+      XLSX.utils.book_append_sheet(wb, wsResumo, 'Resumo_Mensal');
+
+      const vendMap = {};
+      (historicoData.vendedorasMes || []).filter(v => mesesSet.has(v.mes)).forEach(v => {
+        if (!vendMap[v.vendedora]) vendMap[v.vendedora] = { Vendedora: v.vendedora, Vendas: 0, Faturamento: 0 };
+        vendMap[v.vendedora].Vendas += v.vendas;
+        vendMap[v.vendedora].Faturamento += v.faturamento;
+      });
+      const wsVend = XLSX.utils.json_to_sheet(
+        Object.values(vendMap)
+          .sort((a, b) => b.Faturamento - a.Faturamento)
+          .map((v, i) => ({
+            'Posição': i + 1,
+            'Vendedor(a)': v.Vendedora,
+            'Vendas (Qtd)': v.Vendas,
+            'Faturamento (R$)': Number(v.Faturamento.toFixed(2))
+          }))
+      );
+      XLSX.utils.book_append_sheet(wb, wsVend, 'Ranking_Vendedoras');
+
+      XLSX.writeFile(wb, 'Historico_Consolidado_Superaco.xlsx');
+    }
+
+    // =========================================================================
+    // FUNÇÕES DE FORMATAÇÃO E CÁLCULO DA OPERAÇÃO ATUAL (SANKHYA)
+    // =========================================================================
     function formatUnidadesVendidas(p) {
       const qtd = p.Quantidade || 0;
-      if (qtd !== 0) return `${formatNum(qtd)} un`;
-      return '-';
+      return qtd !== 0 ? `${formatNum(qtd)} un` : '-';
     }
 
     function formatPesoVendido(p) {
       const peso = p['Peso (kg)'] || 0;
-      if (peso !== 0) return formatKG(peso);
-      return '-';
+      return peso !== 0 ? formatKG(peso) : '-';
     }
 
     function formatPrecoMedio(p) {
@@ -662,17 +1303,10 @@
     }
 
     function getEasterDate(year) {
-      const a = year % 19;
-      const b = Math.floor(year / 100);
-      const c = year % 100;
-      const d = Math.floor(b / 4);
-      const e = b % 4;
-      const f = Math.floor((b + 8) / 25);
-      const g = Math.floor((b - f + 1) / 3);
-      const h = (19 * a + b - d - g + 15) % 30;
-      const i = Math.floor(c / 4);
-      const k = c % 4;
-      const l = (32 + 2 * e + 2 * i - h - k) % 7;
+      const a = year % 19, b = Math.floor(year / 100), c = year % 100;
+      const d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25);
+      const g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30;
+      const i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7;
       const m = Math.floor((a + 11 * h + 22 * l) / 451);
       const month = Math.floor((h + l - 7 * m + 114) / 31) - 1;
       const day = ((h + l - 7 * m + 114) % 31) + 1;
@@ -680,10 +1314,7 @@
     }
 
     function formatDateISO(dt) {
-      const y = dt.getFullYear();
-      const m = String(dt.getMonth() + 1).padStart(2, '0');
-      const d = String(dt.getDate()).padStart(2, '0');
-      return `${y}-${m}-${d}`;
+      return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
     }
 
     function addDays(dt, days) {
@@ -722,7 +1353,6 @@
         if (!feriadosCache[year]) feriadosCache[year] = getFeriadosBrasil(year);
         const iso = formatDateISO(curr);
         const dayOfWeek = curr.getDay();
-
         if (dayOfWeek !== 0 && !feriadosCache[year].has(iso)) {
           totalDias += dayOfWeek === 6 ? 0.5 : 1.0;
         }
@@ -731,7 +1361,7 @@
       return totalDias;
     }
 
-    function recalcularPeriodoDatas() {
+    function recalcularPeriodoDatas(reaplicar = true) {
       const ini = document.getElementById('dataInicialInput').value;
       const fim = document.getElementById('dataFinalInput').value;
       const calculado = calcularDiasUteisEntreDatas(ini, fim);
@@ -747,27 +1377,20 @@
       document.getElementById('header-dias-label').innerText = formattedDias;
       document.getElementById('kpi-sub-cobertura').innerText = `Autonomia baseada no ritmo de ${formattedDias} dias úteis`;
 
-      if (allUploadedProducts.length > 0) {
-        aplicarFiltrosBase(false);
+      if (reaplicar && allUploadedProducts.length > 0) {
+        aplicarFiltrosBase(false, true);
       }
     }
 
     function parseNumericValue(rawVal) {
       if (typeof rawVal === 'number') return isNaN(rawVal) ? 0 : rawVal;
       if (rawVal === null || rawVal === undefined) return 0;
-
       let str = String(rawVal).trim();
       if (!str) return 0;
-
       let isNegative = (str.startsWith('(') && str.endsWith(')')) || str.includes('-');
       str = str.replace(/[R$\s()-]/g, '');
-
-      if (str.includes(',') && str.includes('.')) {
-        str = str.replace(/\./g, '').replace(',', '.');
-      } else if (str.includes(',')) {
-        str = str.replace(',', '.');
-      }
-
+      if (str.includes(',') && str.includes('.')) str = str.replace(/\./g, '').replace(',', '.');
+      else if (str.includes(',')) str = str.replace(',', '.');
       const num = parseFloat(str) || 0;
       return isNegative ? -Math.abs(num) : num;
     }
@@ -779,23 +1402,27 @@
 
     function switchTab(tabId) {
       document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
-      document.getElementById(`tab-${tabId}`).classList.add('active');
+      const targetTab = document.getElementById(`tab-${tabId}`);
+      if (targetTab) targetTab.classList.add('active');
 
-      document.getElementById('content-visao-geral').classList.add('hidden');
-      document.getElementById('content-estoque-parado').classList.add('hidden');
-      document.getElementById('content-curva-lucratividade').classList.add('hidden');
-      document.getElementById('content-menos-vendidos').classList.add('hidden');
-      document.getElementById('content-tabela-produtos').classList.add('hidden');
-      document.getElementById('content-insights').classList.add('hidden');
+      const sections = [
+        'historico-consolidado', 'visao-geral', 'estoque-parado',
+        'curva-lucratividade', 'menos-vendidos', 'tabela-produtos', 'insights'
+      ];
+      sections.forEach(s => {
+        const el = document.getElementById(`content-${s}`);
+        if (el) el.classList.add('hidden');
+      });
 
-      document.getElementById(`content-${tabId}`).classList.remove('hidden');
+      const activeContent = document.getElementById(`content-${tabId}`);
+      if (activeContent) activeContent.classList.remove('hidden');
     }
 
     function normalizeText(str) {
       return String(str || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().trim();
     }
 
-    function aplicarFiltrosBase(showAlert = false) {
+    function aplicarFiltrosBase(showAlert = false, syncCloud = true) {
       const incluirSucataBobina = document.getElementById('toggleSucataBobina').checked;
 
       document.getElementById('header-filtro-label').innerText = incluirSucataBobina
@@ -865,9 +1492,13 @@
       populateCategoryDropdown();
       updateDashboardData();
 
+      if (syncCloud) {
+        salvarOperacaoAtualNoFirebase();
+      }
+
       if (showAlert) {
         const modoTxt = incluirSucataBobina ? 'Base completa (com Sucata e Bobina CA 60)' : 'Sem Sucata e Bobina CA 60';
-        alert(`Planilhas carregadas com sucesso! (${modoTxt})\n- Faturamento Líquido: ${formatBRL(totalFatDinamico)}\n- Itens ativos: ${parsedList.length} SKUs\n- Período: ${String(diasUteisPeriodo).replace('.', ',')} dias úteis`);
+        alert(`Planilhas carregadas e salvas no Firebase! (${modoTxt})\n- Faturamento Líquido: ${formatBRL(totalFatDinamico)}\n- Itens ativos: ${parsedList.length} SKUs`);
       }
     }
 
@@ -875,7 +1506,7 @@
       const files = event.target.files;
       if (!files || files.length === 0) return;
 
-      recalcularPeriodoDatas();
+      recalcularPeriodoDatas(false);
       let itemMap = {};
 
       for (let i = 0; i < files.length; i++) {
@@ -896,12 +1527,8 @@
 
             row.forEach((cell, c) => {
               const val = String(cell || '').toLowerCase().trim();
-
-              if ((val.includes('produto') || val.includes('prod')) && (val.includes('cód') || val.includes('cod'))) {
-                colCod = c;
-              } else if ((val === 'código' || val === 'codigo' || val === 'cod.produto') && colCod === -1) {
-                colCod = c;
-              }
+              if ((val.includes('produto') || val.includes('prod')) && (val.includes('cód') || val.includes('cod'))) colCod = c;
+              else if ((val === 'código' || val === 'codigo' || val === 'cod.produto') && colCod === -1) colCod = c;
 
               if (val.includes('descriç') || val.includes('descric') || val === 'produto') colProd = c;
               if ((val.includes('grupo') || val.includes('categor')) && !val.includes('cód') && !val.includes('cod')) colGrupo = c;
@@ -910,11 +1537,8 @@
               if (val.includes('peso')) colPeso = c;
               if (val === 'local' && !val.includes('cód') && !val.includes('cod')) colLocal = c;
 
-              if (val === 'disponível' || val === 'disponivel') {
-                colEstoque = c;
-              } else if ((val === 'estoque' || val === 'saldo') && colEstoque === -1) {
-                colEstoque = c;
-              }
+              if (val === 'disponível' || val === 'disponivel') colEstoque = c;
+              else if ((val === 'estoque' || val === 'saldo') && colEstoque === -1) colEstoque = c;
 
               if (val === 'cmv') colCMV = c;
               if (val.includes('custo médio') || val.includes('custo medio')) colCustoVenda = c;
@@ -937,7 +1561,6 @@
 
           dataRows.forEach(row => {
             if (!row || row.length < 2) return;
-
             const nome = String(row[colProd] || '').trim();
             const lowerNome = nome.toLowerCase();
             if (!nome || lowerNome === 'produto' || lowerNome === 'descrição' || lowerNome.includes('total geral') || lowerNome.includes('subtotal') || lowerNome === 'total') return;
@@ -945,7 +1568,6 @@
             const cod = parseInt(row[colCod]) || 0;
             const grupo = String(row[colGrupo] || 'GERAL').trim().toUpperCase();
 
-            // Filtro de Local de Estoque
             if (colLocal !== -1) {
               const localNorm = normalizeText(row[colLocal]);
               if (CODIGOS_SOMENTE_ACESSORIOS.has(cod)) {
@@ -968,16 +1590,10 @@
 
             if (!itemMap[key]) {
               itemMap[key] = {
-                Código: cod,
-                Produto: nome,
-                Grupo: grupo,
-                Faturamento: fat,
-                Quantidade: qtd,
-                'Peso (kg)': peso,
-                Estoque: est,
-                CustoPosicao: custo,
-                CustoVenda: custoVenda || cmvUnit,
-                CMVUnit: cmvUnit || custoVenda,
+                Código: cod, Produto: nome, Grupo: grupo,
+                Faturamento: fat, Quantidade: qtd, 'Peso (kg)': peso,
+                Estoque: est, CustoPosicao: custo,
+                CustoVenda: custoVenda || cmvUnit, CMVUnit: cmvUnit || custoVenda,
                 ValorEstoque: valEst
               };
             } else {
@@ -988,10 +1604,7 @@
               itemMap[key].Quantidade += qtd;
               itemMap[key]['Peso (kg)'] += peso;
 
-              if (grupo !== 'GERAL' && itemMap[key].Grupo === 'GERAL') {
-                itemMap[key].Grupo = grupo;
-              }
-
+              if (grupo !== 'GERAL' && itemMap[key].Grupo === 'GERAL') itemMap[key].Grupo = grupo;
               if (custoVenda > 0) itemMap[key].CustoVenda = custoVenda;
               if (cmvUnit > 0) itemMap[key].CMVUnit = cmvUnit;
 
@@ -1010,7 +1623,8 @@
       }
 
       allUploadedProducts = Object.values(itemMap);
-      aplicarFiltrosBase(true);
+      switchTab('visao-geral');
+      aplicarFiltrosBase(true, true);
     }
 
     function salvarBaseParaSimulador(lista) {
@@ -1044,13 +1658,11 @@
         alert("Carregue as planilhas antes de enviar para o Simulador de Ofertas.");
         return;
       }
-
       const itensDisponiveis = base.filter(item => (item.Estoque || 0) > 0);
       if (itensDisponiveis.length === 0) {
         alert("Nenhum dos itens filtrados possui Qtd Disponível maior que zero.");
         return;
       }
-
       salvarBaseParaSimulador(itensDisponiveis);
       window.open(URL_SIMULADOR_OFERTAS, '_blank');
     }
@@ -1157,15 +1769,10 @@
     }
 
     function toggleSortDeadstock(field) {
-      if (deadstockSortField === field) {
-        deadstockSortOrder = deadstockSortOrder === 'asc' ? 'desc' : 'asc';
-      } else {
-        deadstockSortField = field;
-        deadstockSortOrder = 'desc';
-      }
+      if (deadstockSortField === field) deadstockSortOrder = deadstockSortOrder === 'asc' ? 'desc' : 'asc';
+      else { deadstockSortField = field; deadstockSortOrder = 'desc'; }
       displayedDeadstockList.sort((a, b) => {
-        let valA = a[field] || 0;
-        let valB = b[field] || 0;
+        let valA = a[field] || 0, valB = b[field] || 0;
         if (typeof valA === 'string') return deadstockSortOrder === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
         return deadstockSortOrder === 'asc' ? valA - valB : valB - valA;
       });
@@ -1179,40 +1786,25 @@
 
     function renderCurvaLucratividadeTable() {
       const tbody = document.getElementById('tableCurvaLucratividade');
-      const listLucro = [...rawProducts]
-        .filter(p => p.Faturamento > 0)
-        .sort((a, b) => b.MargemBruta - a.MargemBruta);
-
+      const listLucro = [...rawProducts].filter(p => p.Faturamento > 0).sort((a, b) => b.MargemBruta - a.MargemBruta);
       const totalLucroPositivo = listLucro.reduce((acc, p) => acc + (p.MargemBruta > 0 ? p.MargemBruta : 0), 0);
       let lucroAcumulado = 0;
 
       curvaLucroList = listLucro.map((p, idx) => {
-        let classeLabel = 'Classe C';
-        let badge = 'bg-slate-500/10 text-slate-300 border-slate-500/30';
-
+        let classeLabel = 'Classe C', badge = 'bg-slate-500/10 text-slate-300 border-slate-500/30';
         if (p.MargemBruta <= 0) {
-          classeLabel = 'Margem Neg.';
-          badge = 'bg-rose-500/10 text-rose-400 border-rose-500/30';
+          classeLabel = 'Margem Neg.'; badge = 'bg-rose-500/10 text-rose-400 border-rose-500/30';
         } else {
           lucroAcumulado += p.MargemBruta;
           const pctAcum = (lucroAcumulado / (totalLucroPositivo || 1)) * 100;
-          if (pctAcum <= 70) {
-            classeLabel = 'Classe A';
-            badge = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30';
-          } else if (pctAcum <= 90) {
-            classeLabel = 'Classe B';
-            badge = 'bg-amber-500/10 text-amber-400 border-amber-500/30';
-          }
+          if (pctAcum <= 70) { classeLabel = 'Classe A'; badge = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'; }
+          else if (pctAcum <= 90) { classeLabel = 'Classe B'; badge = 'bg-amber-500/10 text-amber-400 border-amber-500/30'; }
         }
-
         return { ...p, PosicaoLucro: idx + 1, ClasseLucro: classeLabel, BadgeLucro: badge };
       });
 
       tbody.innerHTML = curvaLucroList.map(p => {
-        const margemTextColor = p.MargemBruta < 0
-          ? 'text-rose-400'
-          : (p.MargemPct < 15 ? 'text-amber-400' : 'text-emerald-400');
-
+        const margemTextColor = p.MargemBruta < 0 ? 'text-rose-400' : (p.MargemPct < 15 ? 'text-amber-400' : 'text-emerald-400');
         return `
           <tr class="hover:bg-brand-cardHover/60 transition">
             <td class="py-3 px-3 text-brand-muted font-mono">${p.PosicaoLucro}</td>
@@ -1230,40 +1822,24 @@
     }
 
     function exportCurvaLucratividadeExcel() {
-      if (!curvaLucroList || curvaLucroList.length === 0) {
-        alert("Carregue as planilhas antes de exportar a Curva ABC por Margem.");
-        return;
-      }
-
+      if (!curvaLucroList || curvaLucroList.length === 0) return;
       const rows = curvaLucroList.map(p => ({
-        'Posição': p.PosicaoLucro,
-        'Código': p.Código || '',
-        'Produto': p.Produto,
-        'Grupo': p.Grupo,
+        'Posição': p.PosicaoLucro, 'Código': p.Código || '', 'Produto': p.Produto, 'Grupo': p.Grupo,
         'Faturamento (R$)': Number((p.Faturamento || 0).toFixed(2)),
         'CMV Vendido (R$)': Number((p.CMVVendido || 0).toFixed(2)),
         'Margem Bruta (R$)': Number((p.MargemBruta || 0).toFixed(2)),
         'Margem (%)': Number((p.MargemPct || 0).toFixed(2)),
         'Curva Lucro': p.ClasseLucro
       }));
-
       const ws = XLSX.utils.json_to_sheet(rows);
-      ws['!cols'] = [
-        { wch: 10 }, { wch: 12 }, { wch: 45 }, { wch: 24 },
-        { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 14 }, { wch: 16 }
-      ];
-
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Curva_ABC_Margem');
       XLSX.writeFile(wb, 'Curva_ABC_Margem_Lucratividade.xlsx');
     }
 
     function toggleTopGrupo(groupName) {
-      if (expandedTopGrupos.has(groupName)) {
-        expandedTopGrupos.delete(groupName);
-      } else {
-        expandedTopGrupos.add(groupName);
-      }
+      if (expandedTopGrupos.has(groupName)) expandedTopGrupos.delete(groupName);
+      else expandedTopGrupos.add(groupName);
       renderTopGroupsList();
     }
 
@@ -1272,58 +1848,37 @@
       container.innerHTML = rawGroups.slice(0, 5).map((g, idx) => {
         const isExpanded = expandedTopGrupos.has(g.name);
         const safeGroupName = g.name.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-        const skusDoGrupo = rawProducts
-          .filter(p => p.Grupo === g.name)
-          .sort((a, b) => b.Faturamento - a.Faturamento);
+        const skusDoGrupo = rawProducts.filter(p => p.Grupo === g.name).sort((a, b) => b.Faturamento - a.Faturamento);
 
         let expandedHtml = '';
         if (isExpanded) {
           const skuItemsHtml = skusDoGrupo.map(sku => {
-            const vendaText = (sku.Quantidade || 0) !== 0
-              ? formatUnidadesVendidas(sku)
-              : ((sku['Peso (kg)'] || 0) !== 0 ? formatPesoVendido(sku) : 'Sem venda');
-            const cobText = sku.Estoque <= 0
-              ? '0d'
-              : (sku.DiasCobertura === 999 ? 'Sem Giro' : `${sku.DiasCobertura}d`);
-            const cobColor = sku.Estoque <= 0
-              ? 'text-rose-400'
-              : (sku.DiasCobertura < 10 ? 'text-amber-400' : 'text-cyan-400');
-
+            const vendaText = (sku.Quantidade || 0) !== 0 ? formatUnidadesVendidas(sku) : ((sku['Peso (kg)'] || 0) !== 0 ? formatPesoVendido(sku) : 'Sem venda');
+            const cobText = sku.Estoque <= 0 ? '0d' : (sku.DiasCobertura === 999 ? 'Sem Giro' : `${sku.DiasCobertura}d`);
+            const cobColor = sku.Estoque <= 0 ? 'text-rose-400' : (sku.DiasCobertura < 10 ? 'text-amber-400' : 'text-cyan-400');
             return `
               <div class="flex items-center justify-between py-1.5 px-2 border-b border-brand-border/30 last:border-none hover:bg-brand-card/70 rounded text-[10px] gap-2">
                 <div class="min-w-0 flex-1">
-                  <div class="text-white font-medium truncate" title="${sku.Produto}">
-                    <span class="font-mono text-brand-muted mr-1">${sku.Código || '-'}</span> ${sku.Produto}
-                  </div>
-                  <div class="text-brand-muted">
-                    Venda: <span class="text-indigo-300 font-semibold">${vendaText}</span> • Disp: <span class="${sku.Estoque <= 0 ? 'text-rose-400 font-bold' : 'text-white'}">${sku.Estoque.toLocaleString('pt-BR')}</span>
-                  </div>
+                  <div class="text-white font-medium truncate"><span class="font-mono text-brand-muted mr-1">${sku.Código || '-'}</span> ${sku.Produto}</div>
+                  <div class="text-brand-muted">Venda: <span class="text-indigo-300 font-semibold">${vendaText}</span> • Disp: <span class="text-white">${sku.Estoque.toLocaleString('pt-BR')}</span></div>
                 </div>
                 <div class="text-right whitespace-nowrap">
-                  <div class="font-bold ${sku.Faturamento > 0 ? 'text-emerald-400' : 'text-brand-muted'}">${formatBRL(sku.Faturamento)}</div>
+                  <div class="font-bold text-emerald-400">${formatBRL(sku.Faturamento)}</div>
                   <div class="font-mono ${cobColor}">Cob: ${cobText}</div>
                 </div>
               </div>
             `;
           }).join('');
-
-          expandedHtml = `
-            <div class="mt-2 pt-2 border-t border-brand-border/50 bg-[#0B0F17]/85 rounded-lg p-2 max-h-48 overflow-y-auto space-y-0.5">
-              ${skuItemsHtml}
-            </div>
-          `;
+          expandedHtml = `<div class="mt-2 pt-2 border-t border-brand-border/50 bg-[#0B0F17]/85 rounded-lg p-2 max-h-48 overflow-y-auto space-y-0.5">${skuItemsHtml}</div>`;
         }
 
         return `
-          <div class="p-2.5 rounded-xl bg-brand-bg/50 border ${isExpanded ? 'border-indigo-500/50 bg-brand-card/60' : 'border-brand-border/40 hover:border-indigo-500/30'} transition">
+          <div class="p-2.5 rounded-xl bg-brand-bg/50 border ${isExpanded ? 'border-indigo-500/50 bg-brand-card/60' : 'border-brand-border/40'} transition">
             <div onclick="toggleTopGrupo('${safeGroupName}')" class="flex items-center justify-between cursor-pointer select-none">
               <div class="flex items-center gap-2.5 min-w-0">
                 <span class="w-5 h-5 rounded-md bg-indigo-500/20 text-indigo-400 text-xs font-bold flex items-center justify-center shrink-0">${idx + 1}</span>
                 <div class="min-w-0">
-                  <div class="flex items-center gap-1.5">
-                    <p class="font-semibold text-white text-xs truncate">${g.name}</p>
-                    <i class="fa-solid ${isExpanded ? 'fa-chevron-up text-indigo-400' : 'fa-chevron-down text-brand-muted'} text-[10px] shrink-0"></i>
-                  </div>
+                  <p class="font-semibold text-white text-xs truncate">${g.name}</p>
                   <p class="text-[10px] text-brand-muted">${formatKG(g.weight)} • ${g.skus} SKUs</p>
                 </div>
               </div>
@@ -1339,95 +1894,45 @@
     }
 
     function toggleGrupoMenores(groupName) {
-      if (expandedMenoresGrupos.has(groupName)) {
-        expandedMenoresGrupos.delete(groupName);
-      } else {
-        expandedMenoresGrupos.add(groupName);
-      }
+      if (expandedMenoresGrupos.has(groupName)) expandedMenoresGrupos.delete(groupName);
+      else expandedMenoresGrupos.add(groupName);
       renderMenoresGruposRows();
     }
 
     function renderMenoresGruposRows() {
       const tbodyGrupos = document.getElementById('tableMenoresGrupos');
       if (!tbodyGrupos) return;
-
       tbodyGrupos.innerHTML = baixoGiroGruposList.map(g => {
         const isExpanded = expandedMenoresGrupos.has(g.name);
         const safeGroupName = g.name.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-        const skusDoGrupo = rawProducts
-          .filter(p => p.Grupo === g.name)
-          .sort((a, b) => a.Faturamento - b.Faturamento);
+        const skusDoGrupo = rawProducts.filter(p => p.Grupo === g.name).sort((a, b) => a.Faturamento - b.Faturamento);
 
         let subTableHtml = '';
         if (isExpanded) {
           const skuRows = skusDoGrupo.map(sku => {
             const valEstSku = sku.ValorEstoque !== 0 ? sku.ValorEstoque : ((sku.Estoque || 0) * (sku.CustoPosicao || 0));
-            const semVenda = (sku.Faturamento || 0) <= 0;
-            const statusSku = semVenda
-              ? `<span class="bg-rose-500/15 text-rose-300 border border-rose-500/30 px-2 py-0.5 rounded text-[10px] font-semibold">Sem Venda (Parado)</span>`
-              : `<span class="bg-amber-500/15 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded text-[10px] font-semibold">Baixo Giro</span>`;
-
             return `
-              <tr class="border-b border-brand-border/30 last:border-none hover:bg-brand-card/70 transition">
+              <tr class="border-b border-brand-border/30 last:border-none">
                 <td class="py-2 px-3 font-mono text-brand-muted">${sku.Código || '-'}</td>
                 <td class="py-2 px-3 font-medium text-white">${sku.Produto}</td>
                 <td class="py-2 px-3 text-right font-mono text-indigo-300">${formatUnidadesVendidas(sku)}</td>
-                <td class="py-2 px-3 text-right font-bold ${semVenda ? 'text-brand-muted' : 'text-amber-400'}">${formatBRL(sku.Faturamento)}</td>
-                <td class="py-2 px-3 text-right font-mono ${sku.Estoque < 0 ? 'text-rose-400 font-bold' : 'text-white'}">${sku.Estoque.toLocaleString('pt-BR')}</td>
-                <td class="py-2 px-3 text-right font-mono ${valEstSku < 0 ? 'text-rose-400' : 'text-cyan-400'}">${formatBRL(valEstSku)}</td>
-                <td class="py-2 px-3 text-right font-bold ${sku.DiasCobertura > 90 ? 'text-rose-400' : 'text-emerald-400'}">${sku.Estoque <= 0 ? '0 dias' : (sku.DiasCobertura === 999 ? 'Sem Giro' : sku.DiasCobertura + ' dias')}</td>
-                <td class="py-2 px-3 text-center">${statusSku}</td>
+                <td class="py-2 px-3 text-right font-bold text-amber-400">${formatBRL(sku.Faturamento)}</td>
+                <td class="py-2 px-3 text-right font-mono text-white">${sku.Estoque.toLocaleString('pt-BR')}</td>
+                <td class="py-2 px-3 text-right font-mono text-cyan-400">${formatBRL(valEstSku)}</td>
               </tr>
             `;
           }).join('');
-
-          subTableHtml = `
-            <tr class="bg-[#0B0F17]/95">
-              <td colspan="7" class="p-3 pl-8 pr-4 border-l-2 border-amber-500/70">
-                <div class="rounded-xl border border-brand-border/70 bg-brand-card/40 overflow-x-auto">
-                  <div class="px-3 py-2 bg-brand-bg/80 border-b border-brand-border/60 flex items-center justify-between text-[11px]">
-                    <span class="font-semibold text-amber-300">
-                      <i class="fa-solid fa-boxes-stacked mr-1.5"></i> SKUs do grupo ${g.name} (${skusDoGrupo.length} itens — ordenados do menor para o maior faturamento)
-                    </span>
-                    <span class="text-brand-muted">Clique no grupo novamente para recolher</span>
-                  </div>
-                  <table class="w-full text-left text-[11px] border-collapse">
-                    <thead>
-                      <tr class="border-b border-brand-border/60 text-brand-muted uppercase font-semibold bg-brand-bg/40">
-                        <th class="py-2 px-3">Código</th>
-                        <th class="py-2 px-3">Descrição do SKU</th>
-                        <th class="py-2 px-3 text-right">Qtd Vendida</th>
-                        <th class="py-2 px-3 text-right">Faturamento (R$)</th>
-                        <th class="py-2 px-3 text-right">Qtd Disponível</th>
-                        <th class="py-2 px-3 text-right">Valor Estoque (R$)</th>
-                        <th class="py-2 px-3 text-right">Cobertura</th>
-                        <th class="py-2 px-3 text-center">Status SKU</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      ${skuRows}
-                    </tbody>
-                  </table>
-                </div>
-              </td>
-            </tr>
-          `;
+          subTableHtml = `<tr class="bg-[#0B0F17]/95"><td colspan="7" class="p-3 pl-8"><table class="w-full text-left text-[11px]"><tbody>${skuRows}</tbody></table></td></tr>`;
         }
 
         return `
-          <tr onclick="toggleGrupoMenores('${safeGroupName}')" class="hover:bg-brand-cardHover/80 transition cursor-pointer select-none ${isExpanded ? 'bg-brand-cardHover/60' : ''}">
+          <tr onclick="toggleGrupoMenores('${safeGroupName}')" class="hover:bg-brand-cardHover/80 transition cursor-pointer">
             <td class="py-3 px-3 font-mono text-brand-muted">${g.PosicaoGrupo}º</td>
-            <td class="py-3 px-3 font-semibold text-white">
-              <div class="flex items-center gap-2">
-                <i class="fa-solid ${isExpanded ? 'fa-chevron-down text-amber-400' : 'fa-chevron-right text-brand-muted'} text-[11px] w-3 transition-transform"></i>
-                <span>${g.name}</span>
-                <span class="text-[10px] text-amber-300/90 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded">${g.skus} SKUs ${isExpanded ? '▲' : '▼'}</span>
-              </div>
-            </td>
+            <td class="py-3 px-3 font-semibold text-white">${g.name} (${g.skus} SKUs)</td>
             <td class="py-3 px-3 text-right font-bold text-amber-400">${formatBRL(g.total)}</td>
             <td class="py-3 px-3 text-right font-mono text-brand-muted">${g.share.toFixed(2)}%</td>
-            <td class="py-3 px-3 text-right font-mono ${g.stockValue < 0 ? 'text-rose-400' : 'text-cyan-400'}">${formatBRL(g.stockValue)}</td>
-            <td class="py-3 px-3 text-right font-bold ${g.coberturaDias > 90 ? 'text-rose-400' : 'text-white'}">${g.stockQty <= 0 ? '0 dias' : (g.coberturaDias === 999 ? 'Sem Estoque' : g.coberturaDias + ' dias')}</td>
+            <td class="py-3 px-3 text-right font-mono text-cyan-400">${formatBRL(g.stockValue)}</td>
+            <td class="py-3 px-3 text-right font-bold text-white">${g.stockQty <= 0 ? '0 dias' : (g.coberturaDias === 999 ? 'Sem Estoque' : g.coberturaDias + ' dias')}</td>
             <td class="py-3 px-3 text-center"><span class="${g.DiagBadge} px-2 py-0.5 rounded text-[10px] font-bold border">${g.Diagnostico}</span></td>
           </tr>
           ${subTableHtml}
@@ -1441,21 +1946,11 @@
 
       baixoGiroGruposList = menosGrupos.map((g, idx) => {
         const pos = gruposComVenda.length - idx;
-        let diag = 'Giro Controlado';
-        let diagBadge = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30';
-        if (g.stockQty < 0) {
-          diag = 'Saldo Negativo / Ajustar';
-          diagBadge = 'bg-rose-500/10 text-rose-400 border-rose-500/30';
-        } else if (g.coberturaDias > 90 && g.stockValue > 500) {
-          diag = 'Superestocado / Queima';
-          diagBadge = 'bg-rose-500/10 text-rose-400 border-rose-500/30';
-        } else if (g.stockValue > g.total * 2) {
-          diag = 'Estoque Alto p/ Venda';
-          diagBadge = 'bg-amber-500/10 text-amber-400 border-amber-500/30';
-        }
+        let diag = 'Giro Controlado', diagBadge = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30';
+        if (g.coberturaDias > 90 && g.stockValue > 500) { diag = 'Superestocado / Queima'; diagBadge = 'bg-rose-500/10 text-rose-400 border-rose-500/30'; }
+        else if (g.stockValue > g.total * 2) { diag = 'Estoque Alto p/ Venda'; diagBadge = 'bg-amber-500/10 text-amber-400 border-amber-500/30'; }
         return { ...g, PosicaoGrupo: pos, Diagnostico: diag, DiagBadge: diagBadge };
       });
-
       renderMenoresGruposRows();
 
       const tbodyProds = document.getElementById('tableMenoresProdutos');
@@ -1464,21 +1959,10 @@
 
       baixoGiroProdutosList = menosProds.map(p => {
         const valEst = p.ValorEstoque !== 0 ? p.ValorEstoque : ((p.Estoque || 0) * (p.CustoPosicao || 0));
-        let acao = 'Monitorar Reposição';
-        let acaoBadge = 'bg-slate-500/10 text-slate-300 border-slate-500/30';
-        if (p.Estoque < 0) {
-          acao = 'Saldo Negativo — Ajustar Estoque';
-          acaoBadge = 'bg-rose-500/10 text-rose-400 border-rose-500/30';
-        } else if (p.Estoque > 0 && p.DiasCobertura > 90) {
-          acao = 'Superestocado — Ofertar Combo';
-          acaoBadge = 'bg-rose-500/10 text-rose-400 border-rose-500/30';
-        } else if (p.Estoque === 0) {
-          acao = 'Sob Encomenda (Estoque Zero)';
-          acaoBadge = 'bg-indigo-500/10 text-indigo-300 border-indigo-500/30';
-        } else {
-          acao = 'Baixa Demanda — Não Recomprar';
-          acaoBadge = 'bg-amber-500/10 text-amber-400 border-amber-500/30';
-        }
+        let acao = 'Monitorar Reposição', acaoBadge = 'bg-slate-500/10 text-slate-300 border-slate-500/30';
+        if (p.Estoque > 0 && p.DiasCobertura > 90) { acao = 'Superestocado — Ofertar Combo'; acaoBadge = 'bg-rose-500/10 text-rose-400 border-rose-500/30'; }
+        else if (p.Estoque === 0) { acao = 'Sob Encomenda (Estoque Zero)'; acaoBadge = 'bg-indigo-500/10 text-indigo-300 border-indigo-500/30'; }
+        else { acao = 'Baixa Demanda — Não Recomprar'; acaoBadge = 'bg-amber-500/10 text-amber-400 border-amber-500/30'; }
         return { ...p, ValEstCalc: valEst, AcaoBaixoGiro: acao, AcaoBadge: acaoBadge };
       });
 
@@ -1489,69 +1973,24 @@
           <td class="py-3 px-3"><span class="bg-indigo-500/10 text-indigo-300 px-2 py-0.5 rounded text-[10px]">${p.Grupo}</span></td>
           <td class="py-3 px-3 text-right font-mono text-indigo-300">${formatUnidadesVendidas(p)}</td>
           <td class="py-3 px-3 text-right font-bold text-amber-400">${formatBRL(p.Faturamento)}</td>
-          <td class="py-3 px-3 text-right font-mono ${p.Estoque < 0 ? 'text-rose-400 font-bold' : ''}">${p.Estoque.toLocaleString('pt-BR')}</td>
-          <td class="py-3 px-3 text-right font-mono ${p.ValEstCalc < 0 ? 'text-rose-400' : 'text-cyan-400'}">${formatBRL(p.ValEstCalc)}</td>
-          <td class="py-3 px-3 text-right font-bold ${p.DiasCobertura > 90 ? 'text-rose-400' : 'text-emerald-400'}">${p.Estoque <= 0 ? '0 dias' : (p.DiasCobertura === 999 ? '999+ dias' : p.DiasCobertura + ' dias')}</td>
+          <td class="py-3 px-3 text-right font-mono">${p.Estoque.toLocaleString('pt-BR')}</td>
+          <td class="py-3 px-3 text-right font-mono text-cyan-400">${formatBRL(p.ValEstCalc)}</td>
+          <td class="py-3 px-3 text-right font-bold text-emerald-400">${p.Estoque <= 0 ? '0 dias' : (p.DiasCobertura === 999 ? '999+ dias' : p.DiasCobertura + ' dias')}</td>
           <td class="py-3 px-3 text-center"><span class="${p.AcaoBadge} px-2 py-0.5 rounded text-[10px] font-bold border">${p.AcaoBaixoGiro}</span></td>
         </tr>
       `).join('');
     }
 
     function exportBaixoGiroExcel() {
-      if ((!baixoGiroGruposList || baixoGiroGruposList.length === 0) && (!baixoGiroProdutosList || baixoGiroProdutosList.length === 0)) {
-        alert("Carregue as planilhas antes de exportar os itens de Baixo Giro.");
-        return;
-      }
-
       const wb = XLSX.utils.book_new();
-
-      const rowsGrupos = baixoGiroGruposList.map(g => ({
-        'Posição': g.PosicaoGrupo,
-        'Grupo / Categoria': g.name,
-        'SKUs Ativos': g.skus,
-        'Faturamento (R$)': Number((g.total || 0).toFixed(2)),
-        'Share (%)': Number((g.share || 0).toFixed(2)),
-        'Estoque Disponível (R$)': Number((g.stockValue || 0).toFixed(2)),
-        'Cobertura Média (Dias)': g.stockQty <= 0 ? 0 : g.coberturaDias,
-        'Diagnóstico': g.Diagnostico
-      }));
-      const wsGrupos = XLSX.utils.json_to_sheet(rowsGrupos);
-      wsGrupos['!cols'] = [{ wch: 10 }, { wch: 28 }, { wch: 14 }, { wch: 18 }, { wch: 12 }, { wch: 22 }, { wch: 22 }, { wch: 26 }];
-      XLSX.utils.book_append_sheet(wb, wsGrupos, 'Grupos_Baixo_Giro');
-
-      const nomesGruposBaixoGiro = new Set(baixoGiroGruposList.map(g => g.name));
-      const rowsSkusDosGrupos = rawProducts
-        .filter(p => nomesGruposBaixoGiro.has(p.Grupo))
-        .sort((a, b) => a.Grupo.localeCompare(b.Grupo) || a.Faturamento - b.Faturamento)
-        .map(p => ({
-          'Grupo': p.Grupo,
-          'Código': p.Código || '',
-          'SKU / Produto': p.Produto,
-          'Qtd Vendida (Un)': Number((p.Quantidade || 0).toFixed(2)),
-          'Faturamento (R$)': Number((p.Faturamento || 0).toFixed(2)),
-          'Qtd Disponível': Number((p.Estoque || 0).toFixed(2)),
-          'Valor Estoque (R$)': Number((p.ValorEstoque || 0).toFixed(2)),
-          'Cobertura (Dias)': p.Estoque <= 0 ? 0 : (p.DiasCobertura === 999 ? 'Sem Giro' : p.DiasCobertura)
-        }));
-      const wsSkusGrupos = XLSX.utils.json_to_sheet(rowsSkusDosGrupos);
-      wsSkusGrupos['!cols'] = [{ wch: 24 }, { wch: 12 }, { wch: 45 }, { wch: 16 }, { wch: 18 }, { wch: 16 }, { wch: 20 }, { wch: 18 }];
-      XLSX.utils.book_append_sheet(wb, wsSkusGrupos, 'SKUs_dos_Grupos');
-
-      const rowsProds = baixoGiroProdutosList.map(p => ({
-        'Código': p.Código || '',
-        'Produto': p.Produto,
-        'Grupo': p.Grupo,
-        'Qtd Vendida (Un)': Number((p.Quantidade || 0).toFixed(2)),
+      const wsProds = XLSX.utils.json_to_sheet(baixoGiroProdutosList.map(p => ({
+        'Código': p.Código || '', 'Produto': p.Produto, 'Grupo': p.Grupo,
         'Faturamento (R$)': Number((p.Faturamento || 0).toFixed(2)),
         'Qtd Disponível': Number((p.Estoque || 0).toFixed(2)),
         'Valor Estoque (R$)': Number((p.ValEstCalc || 0).toFixed(2)),
-        'Cobertura (Dias)': p.Estoque <= 0 ? 0 : p.DiasCobertura,
-        'Diagnóstico / Ação': p.AcaoBaixoGiro
-      }));
-      const wsProds = XLSX.utils.json_to_sheet(rowsProds);
-      wsProds['!cols'] = [{ wch: 12 }, { wch: 45 }, { wch: 24 }, { wch: 16 }, { wch: 18 }, { wch: 16 }, { wch: 20 }, { wch: 18 }, { wch: 30 }];
+        'Diagnóstico': p.AcaoBaixoGiro
+      })));
       XLSX.utils.book_append_sheet(wb, wsProds, 'Produtos_Baixo_Giro');
-
       XLSX.writeFile(wb, 'Relatorio_Menos_Vendidos_Baixo_Giro.xlsx');
     }
 
@@ -1564,12 +2003,12 @@
           <td class="py-3 px-3 font-mono text-brand-muted">${p.Código || '-'}</td>
           <td class="py-3 px-3 font-semibold text-white">${p.Produto}</td>
           <td class="py-3 px-3"><span class="bg-indigo-500/10 text-indigo-300 px-2 py-0.5 rounded text-[10px]">${p.Grupo}</span></td>
-          <td class="py-3 px-3 text-right font-bold ${p.Faturamento < 0 ? 'text-rose-400' : 'text-emerald-400'}">${formatBRL(p.Faturamento)}</td>
+          <td class="py-3 px-3 text-right font-bold text-emerald-400">${formatBRL(p.Faturamento)}</td>
           <td class="py-3 px-3 text-right font-mono text-indigo-300 font-semibold">${formatUnidadesVendidas(p)}</td>
           <td class="py-3 px-3 text-right font-mono text-cyan-400">${formatPesoVendido(p)}</td>
           <td class="py-3 px-3 text-right font-mono text-amber-300">${formatPrecoMedio(p)}</td>
-          <td class="py-3 px-3 text-right font-mono ${p.Estoque < 0 ? 'text-rose-400 font-bold' : ''}">${p.Estoque.toLocaleString('pt-BR')}</td>
-          <td class="py-3 px-3 text-right font-bold ${p.DiasCobertura > 90 ? 'text-rose-400' : 'text-emerald-400'}">${p.Estoque <= 0 ? '0 dias' : (p.DiasCobertura === 999 ? 'Sem Giro' : p.DiasCobertura + ' dias')}</td>
+          <td class="py-3 px-3 text-right font-mono">${p.Estoque.toLocaleString('pt-BR')}</td>
+          <td class="py-3 px-3 text-right font-bold text-emerald-400">${p.Estoque <= 0 ? '0 dias' : (p.DiasCobertura === 999 ? 'Sem Giro' : p.DiasCobertura + ' dias')}</td>
           <td class="py-3 px-3 text-center"><span class="bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded text-[10px] font-bold">${p.CurvaABC || 'Curva C'}</span></td>
         </tr>
       `).join('');
@@ -1591,8 +2030,7 @@
           datasets: [{
             data: displayGroups.map(g => g.total),
             backgroundColor: ['#6366F1', '#10B981', '#06B6D4', '#F59E0B', '#EC4899', '#8B5CF6', '#3B82F6', '#64748B'],
-            borderWidth: 2,
-            borderColor: '#151C2C'
+            borderWidth: 2, borderColor: '#151C2C'
           }]
         },
         options: { responsive: true, maintainAspectRatio: false, cutout: '70%' }
@@ -1626,8 +2064,7 @@
           ]
         },
         options: {
-          responsive: true,
-          maintainAspectRatio: false,
+          responsive: true, maintainAspectRatio: false,
           scales: {
             y: { position: 'left', ticks: { callback: (v) => 'R$ ' + (v/1000) + 'k' } },
             y1: { position: 'right', grid: { drawOnChartArea: false }, ticks: { callback: (v) => (v/1000) + ' Ton' } }
@@ -1652,20 +2089,14 @@
     }
 
     function filterByCategory(category) {
-      if (category !== 'ALL') {
-        activeFilteredProducts = rawProducts.filter(p => p.Grupo === category);
-      } else {
-        activeFilteredProducts = [...rawProducts];
-      }
+      activeFilteredProducts = category !== 'ALL' ? rawProducts.filter(p => p.Grupo === category) : [...rawProducts];
       renderProductsTable(activeFilteredProducts);
     }
 
     function handleSearch(query) {
       const term = query.toLowerCase();
       const filtered = activeFilteredProducts.filter(p => 
-        p.Produto.toLowerCase().includes(term) || 
-        p.Grupo.toLowerCase().includes(term) ||
-        (p.CurvaABC && p.CurvaABC.toLowerCase().includes(term))
+        p.Produto.toLowerCase().includes(term) || p.Grupo.toLowerCase().includes(term) || String(p.Código).includes(term)
       );
       renderProductsTable(filtered);
     }
@@ -1673,47 +2104,26 @@
     function generatePDFReport() {
       const element = document.getElementById('pdf-report-area');
       const opt = {
-        margin:       0.3,
-        filename:     'Relatorio_Executivo_Comercial_Sankhya.pdf',
-        image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { scale: 2, useCORS: true, backgroundColor: '#0B0F17' },
-        jsPDF:        { unit: 'in', format: 'a4', orientation: 'landscape' }
+        margin: 0.3, filename: 'Relatorio_Executivo_Comercial_Superaco.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, backgroundColor: '#0B0F17' },
+        jsPDF: { unit: 'in', format: 'a4', orientation: 'landscape' }
       };
       html2pdf().set(opt).from(element).save();
     }
 
     function exportToExcel() {
-      if (!activeFilteredProducts || activeFilteredProducts.length === 0) {
-        alert("Carregue as planilhas antes de exportar para Excel.");
-        return;
-      }
-
+      if (!activeFilteredProducts || activeFilteredProducts.length === 0) return;
       const rows = activeFilteredProducts.map((item, idx) => ({
-        'Posição': item['Posição'] || idx + 1,
-        'Código': item.Código || '',
-        'Produto': item.Produto,
-        'Grupo': item.Grupo,
+        'Posição': item['Posição'] || idx + 1, 'Código': item.Código || '', 'Produto': item.Produto, 'Grupo': item.Grupo,
         'Faturamento (R$)': Number((item.Faturamento || 0).toFixed(2)),
         'Qtd Vendida (Un)': Number((item.Quantidade || 0).toFixed(2)),
         'Peso Vendido (kg)': Number((item['Peso (kg)'] || 0).toFixed(2)),
         'Preço Médio': formatPrecoMedioTexto(item),
         'Qtd Disponível': Number((item.Estoque || 0).toFixed(2)),
-        'Custo (R$)': Number((item.CustoPosicao || 0).toFixed(4)),
-        'CMV Vendido (R$)': Number((item.CMVVendido || 0).toFixed(2)),
-        'Margem Bruta (R$)': Number((item.MargemBruta || 0).toFixed(2)),
-        'Margem (%)': Number((item.MargemPct || 0).toFixed(2)),
-        'Cobertura (Dias)': item.Estoque <= 0 ? 0 : (item.DiasCobertura === 999 ? 'Sem Giro' : item.DiasCobertura),
         'Classe ABC': item.CurvaABC || 'Curva C'
       }));
-
       const ws = XLSX.utils.json_to_sheet(rows);
-      ws['!cols'] = [
-        { wch: 10 }, { wch: 12 }, { wch: 45 }, { wch: 24 },
-        { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 18 },
-        { wch: 16 }, { wch: 16 }, { wch: 18 }, { wch: 18 },
-        { wch: 14 }, { wch: 18 }, { wch: 14 }
-      ];
-
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Ranking_Produtos');
       XLSX.writeFile(wb, 'Ranking_Produtos_Completo.xlsx');
@@ -1721,36 +2131,22 @@
 
     function exportDeadstockExcel() {
       const listToExport = displayedDeadstockList.length > 0 ? displayedDeadstockList : deadstockList;
-      if (!listToExport || listToExport.length === 0) {
-        alert("Não há itens de estoque parado para exportar.");
-        return;
-      }
-
+      if (!listToExport || listToExport.length === 0) return;
       const rows = listToExport.map(p => ({
-        'Código': p.Código || '',
-        'Descrição do Produto': p.Produto,
-        'Grupo': p.Grupo,
-        'Locais Considerados': 'GALPÃO + ACESSÓRIOS',
+        'Código': p.Código || '', 'Descrição do Produto': p.Produto, 'Grupo': p.Grupo,
         'Qtd Disponível': Number((p.Estoque || 0).toFixed(2)),
         'Custo (R$)': Number((p.CustoPosicao || 0).toFixed(4)),
-        'Valor Disponível (R$)': Number((p.ValorEstoque || 0).toFixed(2)),
-        'Vendas no Período': 0,
-        'Ação Tática Sugerida': 'Oferta de Combo com Curva A / Comissão Extra'
+        'Valor Disponível (R$)': Number((p.ValorEstoque || 0).toFixed(2))
       }));
-
       const ws = XLSX.utils.json_to_sheet(rows);
-      ws['!cols'] = [
-        { wch: 12 }, { wch: 45 }, { wch: 24 }, { wch: 24 },
-        { wch: 16 }, { wch: 16 }, { wch: 22 }, { wch: 18 }, { wch: 42 }
-      ];
-
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Estoque_Parado');
       XLSX.writeFile(wb, 'Relatorio_Estoque_Disponivel_Parado.xlsx');
     }
 
     window.addEventListener('DOMContentLoaded', () => {
-      recalcularPeriodoDatas();
+      recalcularPeriodoDatas(false);
+      carregarDadosDoFirebase();
     });
   </script>
 </body>
