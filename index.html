@@ -904,111 +904,168 @@
       }
     }
 
-    async function salvarOperacaoAtualNoFirebase() {
-      if (!allUploadedProducts || allUploadedProducts.length === 0) return;
-      try {
-        atualizarStatusFirebase('Salvando estoque na nuvem...', 'amber');
-        const payload = {
-          updatedAt: new Date().toISOString(),
-          dataInicial: document.getElementById('dataInicialInput').value,
-          dataFinal: document.getElementById('dataFinalInput').value,
-          incluirSucataBobina: document.getElementById('toggleSucataBobina').checked,
-          products: allUploadedProducts
-        };
-        await db.collection('dashboard_superaco').doc('operacao_atual').set(payload);
-        atualizarStatusFirebase('Firebase Sincronizado', 'emerald');
-      } catch (err) {
-        console.error('Erro ao salvar operação no Firebase:', err);
-        atualizarStatusFirebase('Erro ao salvar estoque', 'rose');
-      }
-    }
+async function handleFileUpload(event) {
+      const inputEl = event.target;
+      const files = inputEl.files;
+      if (!files || files.length === 0) return;
 
-    async function carregarDadosDoFirebase() {
       try {
-        atualizarStatusFirebase('Carregando dados da nuvem...', 'amber');
+        recalcularPeriodoDatas(false);
+        let itemMap = {};
+        let totalLinhasLidas = 0;
 
-        const docHist = await db.collection('dashboard_superaco').doc('historico_consolidado').get();
-        if (docHist.exists) {
-          const data = docHist.data();
-          historicoData = {
-            updatedAt: data.updatedAt || null,
-            resumo: data.resumo || [],
-            produtosMes: data.produtosMes || []
-          };
-          popularSeletorMesesHistorico();
-          renderHistoricoView();
+        for (let i = 0; i < files.length; i++) {
+          const file = files[i];
+          const buffer = await file.arrayBuffer();
+          const workbook = XLSX.read(new Uint8Array(buffer), { type: 'array' });
+
+          for (let sheetName of workbook.SheetNames) {
+            const worksheet = workbook.Sheets[sheetName];
+            const rawRows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+
+            let colCod = -1, colProd = -1, colGrupo = -1, colFat = -1, colQtd = -1;
+            let colPeso = -1, colEstoque = -1, colCusto = -1, colCustoVenda = -1;
+            let colCMV = -1, colValorEstoque = -1, colLocal = -1;
+            let headerRowIdx = -1;
+
+            // Varre até as primeiras 40 linhas para localizar o cabeçalho do Sankhya
+            for (let r = 0; r < Math.min(40, rawRows.length); r++) {
+              const row = rawRows[r];
+              if (!row) continue;
+
+              row.forEach((cell, c) => {
+                const val = normalizeText(cell).toLowerCase();
+                if (!val) return;
+
+                if ((val.includes('produto') || val.includes('prod')) && (val.includes('cod'))) colCod = c;
+                else if ((val === 'codigo' || val === 'cod' || val === 'cod.produto' || val === 'codprod') && colCod === -1) colCod = c;
+
+                if (val.includes('descri') || val === 'produto' || val === 'descr. produto' || val === 'material') colProd = c;
+                if ((val.includes('grupo') || val.includes('categor') || val.includes('familia')) && !val.includes('cod')) colGrupo = c;
+                if (val.includes('faturam') || val.includes('venda') || val.includes('receit') || val.includes('total r$') || val.includes('vlr') || val === 'valor') colFat = c;
+                if (val === 'quantidade' || val.includes('qtd') || val.includes('qtde')) colQtd = c;
+                if (val.includes('peso')) colPeso = c;
+                if ((val === 'local' || val.includes('descr. local')) && !val.includes('cod')) colLocal = c;
+
+                if (val === 'disponivel' || val.includes('qtd disponivel') || val.includes('saldo disponivel')) colEstoque = c;
+                else if ((val === 'estoque' || val === 'saldo' || val === 'estoque atual') && colEstoque === -1) colEstoque = c;
+
+                if (val === 'cmv' || val.includes('custo mercadoria')) colCMV = c;
+                if (val.includes('custo medio') || val.includes('custo med')) colCustoVenda = c;
+                if (val.includes('custo') && !val.includes('data') && !val.includes('medio') && !val.includes('med')) colCusto = c;
+                if (val.includes('valor') && val.includes('estoque')) colValorEstoque = c;
+              });
+
+              if (colProd !== -1 && (colFat !== -1 || colEstoque !== -1 || colQtd !== -1)) {
+                headerRowIdx = r;
+                break;
+              }
+            }
+
+            if (headerRowIdx === -1) continue;
+
+            if (colLocal !== -1 && colCusto === -1 && rawRows[headerRowIdx] && rawRows[headerRowIdx].length > 12) {
+              colCusto = 12;
+            }
+
+            const dataRows = rawRows.slice(headerRowIdx + 1);
+
+            dataRows.forEach(row => {
+              if (!row || row.length < 2) return;
+              const nome = String(row[colProd] || '').trim();
+              const lowerNome = normalizeText(nome).toLowerCase();
+              if (
+                !nome ||
+                lowerNome === 'produto' ||
+                lowerNome.startsWith('descri') ||
+                lowerNome.includes('total geral') ||
+                lowerNome.includes('subtotal') ||
+                lowerNome === 'total'
+              ) return;
+
+              const cod = colCod !== -1 ? (parseInt(String(row[colCod]).replace(/\D/g, '')) || 0) : 0;
+              const grupo = colGrupo !== -1 ? String(row[colGrupo] || 'GERAL').trim().toUpperCase() : 'GERAL';
+
+              if (colLocal !== -1) {
+                const localNorm = normalizeText(row[colLocal]);
+                if (localNorm) {
+                  if (CODIGOS_SOMENTE_ACESSORIOS.has(cod)) {
+                    if (localNorm !== 'ACESSORIOS') return;
+                  } else {
+                    if (localNorm !== 'GALPAO' && localNorm !== 'ACESSORIOS') return;
+                  }
+                }
+              }
+
+              const fat = colFat !== -1 ? parseNumericValue(row[colFat]) : 0;
+              const peso = colPeso !== -1 ? parseNumericValue(row[colPeso]) : 0;
+              const qtd = colQtd !== -1 ? parseNumericValue(row[colQtd]) : 0;
+              const est = colEstoque !== -1 ? parseNumericValue(row[colEstoque]) : 0;
+              const custo = colCusto !== -1 ? parseNumericValue(row[colCusto]) : 0;
+              const custoVenda = colCustoVenda !== -1 ? parseNumericValue(row[colCustoVenda]) : 0;
+              const cmvUnit = colCMV !== -1 ? parseNumericValue(row[colCMV]) : 0;
+              const valEst = colValorEstoque !== -1 ? parseNumericValue(row[colValorEstoque]) : 0;
+
+              const key = cod > 0 ? `COD_${cod}` : lowerNome;
+              totalLinhasLidas++;
+
+              if (!itemMap[key]) {
+                itemMap[key] = {
+                  Código: cod,
+                  Produto: nome,
+                  Grupo: grupo || 'GERAL',
+                  Faturamento: fat,
+                  Quantidade: qtd,
+                  'Peso (kg)': peso,
+                  Estoque: est,
+                  CustoPosicao: custo,
+                  CustoVenda: custoVenda || cmvUnit,
+                  CMVUnit: cmvUnit || custoVenda,
+                  ValorEstoque: valEst
+                };
+              } else {
+                const estAnterior = itemMap[key].Estoque || 0;
+                const custoAnterior = itemMap[key].CustoPosicao || 0;
+
+                itemMap[key].Faturamento += fat;
+                itemMap[key].Quantidade += qtd;
+                itemMap[key]['Peso (kg)'] += peso;
+
+                if (grupo && grupo !== 'GERAL' && itemMap[key].Grupo === 'GERAL') itemMap[key].Grupo = grupo;
+                if (custoVenda > 0) itemMap[key].CustoVenda = custoVenda;
+                if (cmvUnit > 0) itemMap[key].CMVUnit = cmvUnit;
+
+                if (colEstoque !== -1) itemMap[key].Estoque += est;
+                if (colCusto !== -1 && custo > 0) {
+                  if (estAnterior + est > 0 && custoAnterior > 0) {
+                    itemMap[key].CustoPosicao = ((estAnterior * custoAnterior) + (est * custo)) / (estAnterior + est);
+                  } else {
+                    itemMap[key].CustoPosicao = custo;
+                  }
+                }
+                if (colValorEstoque !== -1) itemMap[key].ValorEstoque += valEst;
+              }
+            });
+          }
         }
 
-        const docOp = await db.collection('dashboard_superaco').doc('operacao_atual').get();
-        if (docOp.exists) {
-          const opData = docOp.data();
-          if (opData.dataInicial) document.getElementById('dataInicialInput').value = opData.dataInicial;
-          if (opData.dataFinal) document.getElementById('dataFinalInput').value = opData.dataFinal;
-          if (typeof opData.incluirSucataBobina === 'boolean') {
-            document.getElementById('toggleSucataBobina').checked = opData.incluirSucataBobina;
-          }
-          recalcularPeriodoDatas(false);
-          if (Array.isArray(opData.products) && opData.products.length > 0) {
-            allUploadedProducts = opData.products;
-            aplicarFiltrosBase(false, false);
-          }
+        const listaFinal = Object.values(itemMap);
+        if (listaFinal.length === 0 || totalLinhasLidas === 0) {
+          alert('Nenhuma linha válida de produto foi identificada nas planilhas selecionadas. Verifique se o arquivo possui colunas como Produto/Descrição e Disponível/Quantidade/Valor.');
+          return;
         }
 
-        atualizarStatusFirebase('Firebase Sincronizado', 'emerald');
+        allUploadedProducts = listaFinal;
+        switchTab('visao-geral');
+        aplicarFiltrosBase(true, true);
       } catch (err) {
-        console.error('Erro ao carregar do Firebase:', err);
-        atualizarStatusFirebase('Modo Offline / Verificar Regras', 'rose');
+        console.error('Erro na leitura das planilhas:', err);
+        alert('Erro ao processar a planilha: ' + err.message);
+      } finally {
+        // Permite reimportar o mesmo arquivo imediatamente se necessário
+        inputEl.value = '';
       }
     }
-
-    // =========================================================================
-    // IMPORTADOR LIMPO DA PLANILHA CONSOLIDADA (IGNORA PAGAMENTO E VENDEDORAS)
-    // =========================================================================
-    async function handleHistoricoConsolidadoUpload(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-
-      const buffer = await file.arrayBuffer();
-      const workbook = XLSX.read(new Uint8Array(buffer), { type: 'array' });
-
-      // Lê exclusivamente a aba "Resumo" (giro mensal)
-      const resumoRows = workbook.Sheets['Resumo'] ? XLSX.utils.sheet_to_json(workbook.Sheets['Resumo']) : [];
-      const resumoLimpo = resumoRows
-        .filter(r => r['Mês'] && /^\d{4}-\d{2}$/.test(String(r['Mês']).trim()))
-        .map(r => ({
-          fonte: String(r['Fonte'] || '').trim(),
-          mes: String(r['Mês']).trim(),
-          vendas: parseNumericValue(r['Vendas (qtd)']),
-          faturamento: parseNumericValue(r['Faturamento (R$)'])
-        }));
-
-      // Lê exclusivamente a aba "Produtos mês a mês" (demanda por SKU)
-      const prodRows = workbook.Sheets['Produtos mês a mês'] ? XLSX.utils.sheet_to_json(workbook.Sheets['Produtos mês a mês']) : [];
-      const produtosLimpos = prodRows
-        .filter(r => r['Mês'] && /^\d{4}-\d{2}$/.test(String(r['Mês']).trim()))
-        .map(r => ({
-          fonte: String(r['Fonte'] || '').trim(),
-          mes: String(r['Mês']).trim(),
-          codigo: parseInt(r['Código']) || 0,
-          produto: String(r['Produto'] || '').trim(),
-          un: String(r['Un.'] || '').trim(),
-          qtd: parseNumericValue(r['Quantidade']),
-          faturamento: parseNumericValue(r['Faturamento (R$)'])
-        }));
-
-      if (resumoLimpo.length === 0) {
-        alert('Não foi possível encontrar a aba "Resumo" na planilha selecionada.');
-        return;
-      }
-
-      historicoData = {
-        updatedAt: new Date().toISOString(),
-        resumo: resumoLimpo,
-        produtosMes: produtosLimpos
-      };
-
-      popularSeletorMesesHistorico();
-      renderHistoricoView();
       switchTab('historico-consolidado');
       await salvarHistoricoNoFirebase(historicoData);
 
