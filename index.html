@@ -189,6 +189,9 @@
         <button onclick="switchTab('historico-consolidado')" id="tab-historico-consolidado" class="nav-tab active px-4 py-2.5 text-amber-300 hover:text-white transition flex items-center gap-2 whitespace-nowrap">
           <i class="fa-solid fa-chart-line text-amber-400"></i> Demanda & Sazonalidade (Histórico)
         </button>
+        <button onclick="switchTab('planejamento-compras')" id="tab-planejamento-compras" class="nav-tab px-4 py-2.5 text-cyan-300 hover:text-white transition flex items-center gap-2 whitespace-nowrap">
+          <i class="fa-solid fa-clipboard-list text-cyan-400"></i> Planejamento de Compras (<span id="tab-count-urgentes">0</span>)
+        </button>
         <button onclick="switchTab('visao-geral')" id="tab-visao-geral" class="nav-tab px-4 py-2.5 text-brand-muted hover:text-white transition flex items-center gap-2 whitespace-nowrap">
           <i class="fa-solid fa-chart-pie"></i> Estoque & Giro Atual
         </button>
@@ -289,7 +292,7 @@
             <p class="text-[11px] text-brand-muted mt-1.5" id="hist-kpi-vale-mes">Menor giro: -</p>
           </div>
 
-          <div class="glass-card rounded-2xl p-5 border border-cyan-500/30">
+          <div onclick="switchTab('planejamento-compras')" class="glass-card rounded-2xl p-5 border border-cyan-500/30 cursor-pointer transition" title="Clique para abrir a aba Planejamento de Compras">
             <div class="flex items-center justify-between text-brand-muted mb-2">
               <span class="text-xs font-semibold uppercase tracking-wider text-cyan-400">Alerta de Reposição</span>
               <div class="w-8 h-8 rounded-lg bg-cyan-500/10 text-cyan-400 flex items-center justify-center">
@@ -306,41 +309,83 @@
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
             <div>
               <h3 class="font-bold text-white text-sm" id="histChartTitle">Curva de Sazonalidade de Saídas (Histórico Consolidado)</h3>
-              <p class="text-xs text-brand-muted" id="histChartSubtitle">Clique em qualquer produto na tabela abaixo para inspecionar o histórico mensal exclusivo daquele item</p>
+              <p class="text-xs text-brand-muted" id="histChartSubtitle">Evolução mensal de consumo líquido em reais</p>
             </div>
-            <button id="btnResetSkuChart" onclick="selecionarProdutoHistorico(null)" class="hidden bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-200 border border-indigo-500/40 text-xs px-3 py-1 rounded-lg font-semibold transition">
-              <i class="fa-solid fa-rotate-left mr-1"></i> Voltar para Visão Geral
+            <button onclick="switchTab('planejamento-compras')" class="bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 border border-cyan-500/40 text-xs px-3 py-1.5 rounded-lg font-semibold transition flex items-center gap-1.5">
+              <i class="fa-solid fa-clipboard-list"></i> Abrir Planejamento de Compras
             </button>
           </div>
-          <div class="relative h-64">
+          <div class="relative h-72">
             <canvas id="histEvolucaoChart"></canvas>
           </div>
         </div>
 
-        <!-- TABELA CENTRAL DE COMPRAS & REPOSIÇÃO (HISTÓRICO X ESTOQUE ATUAL) -->
-        <div class="glass-panel rounded-2xl p-5">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+      </div>
+
+      <!-- ===================================================================== -->
+      <!-- TAB 0.5: PLANEJAMENTO DE COMPRAS (ABA DEDICADA)                       -->
+      <!-- ===================================================================== -->
+      <div id="content-planejamento-compras" class="hidden space-y-6">
+        
+        <!-- PAINEL SUPERIOR DE INSPEÇÃO SAZONAL DO PRODUTO SELECIONADO (OPCIONAL AO CLICAR NA LINHA) -->
+        <div id="skuSazonalidadePanel" class="hidden glass-panel rounded-2xl p-5 border-l-4 border-cyan-400">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
             <div>
-              <h3 class="font-bold text-white text-sm flex items-center gap-2">
+              <span class="text-[10px] uppercase tracking-wider font-bold text-cyan-400">Histórico Mensal do SKU Selecionado</span>
+              <h3 class="font-bold text-white text-sm" id="skuChartTitle">-</h3>
+              <p class="text-xs text-brand-muted" id="skuChartSubtitle">Consumo mês a mês ao longo do período histórico filtrado</p>
+            </div>
+            <button onclick="selecionarProdutoHistorico(null)" class="bg-brand-bg hover:bg-brand-cardHover text-brand-muted hover:text-white border border-brand-border text-xs px-3 py-1.5 rounded-lg font-semibold transition">
+              <i class="fa-solid fa-xmark mr-1"></i> Fechar Gráfico do Item
+            </button>
+          </div>
+          <div class="relative h-52">
+            <canvas id="skuEvolucaoChart"></canvas>
+          </div>
+        </div>
+
+        <!-- TABELA CENTRAL DE COMPRAS & REPOSIÇÃO (HISTÓRICO X ESTOQUE ATUAL) -->
+        <div class="glass-panel rounded-2xl p-5 border-l-4 border-emerald-500">
+          <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-4">
+            <div>
+              <h3 class="font-bold text-white text-base flex items-center gap-2">
                 <i class="fa-solid fa-clipboard-list text-emerald-400"></i> Planejamento de Compras — Giro Histórico × Estoque Disponível
               </h3>
-              <p class="text-xs text-brand-muted">Clique na linha de um produto para ver sua curva mensal de consumo no gráfico acima.</p>
+              <p class="text-xs text-brand-muted">Clique na linha de um produto para ver sua curva mensal de consumo no gráfico.</p>
             </div>
-            <div class="relative w-full sm:w-64">
-              <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-1/2 -translate-y-1/2 text-brand-muted text-xs"></i>
-              <input 
-                type="text" 
-                id="histBuscaProduto"
-                placeholder="Filtrar código ou produto..." 
-                oninput="renderHistoricoView()"
-                class="w-full pl-8 pr-3 py-1.5 text-xs bg-brand-bg border border-brand-border rounded-lg text-white placeholder-brand-muted focus:outline-none focus:border-cyan-400"
-              >
+
+            <div class="flex flex-wrap items-center gap-2.5">
+              <!-- FILTRO POR STATUS DE COMPRA -->
+              <select id="histFiltroStatusCompra" onchange="renderHistoricoView()" class="bg-brand-bg border border-brand-border text-white text-xs font-semibold rounded-lg px-3 py-1.5 focus:outline-none focus:border-cyan-400 cursor-pointer">
+                <option value="ALL">Todos os Status</option>
+                <option value="URGENTE">Comprar Urgente (&lt; 15 dias)</option>
+                <option value="PONTO_PEDIDO">Ponto de Pedido (15 a 34 dias)</option>
+                <option value="ABASTECIDO">Abastecido (35 a 90 dias)</option>
+                <option value="EXCESSO">Excesso / Suspender (&gt; 90 dias)</option>
+              </select>
+
+              <!-- CAMPO DE BUSCA -->
+              <div class="relative w-full sm:w-64">
+                <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-1/2 -translate-y-1/2 text-brand-muted text-xs"></i>
+                <input 
+                  type="text" 
+                  id="histBuscaProduto"
+                  placeholder="Filtrar código ou produto..." 
+                  oninput="renderHistoricoView()"
+                  class="w-full pl-8 pr-3 py-1.5 text-xs bg-brand-bg border border-brand-border rounded-lg text-white placeholder-brand-muted focus:outline-none focus:border-cyan-400"
+                >
+              </div>
+
+              <!-- EXPORTAR EXCEL -->
+              <button onclick="exportHistoricoExcel()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 shadow">
+                <i class="fa-solid fa-file-excel"></i> Exportar (.xlsx)
+              </button>
             </div>
           </div>
 
-          <div class="overflow-x-auto max-h-[480px]">
+          <div class="overflow-x-auto max-h-[580px]">
             <table class="w-full text-left text-xs border-collapse">
-              <thead class="sticky top-0 bg-[#0B0F17]">
+              <thead class="sticky top-0 bg-[#0B0F17] z-10">
                 <tr class="border-b border-brand-border text-brand-muted uppercase font-semibold">
                   <th class="py-3 px-2.5">#</th>
                   <th class="py-3 px-2.5">Cód.</th>
@@ -358,7 +403,6 @@
             </table>
           </div>
         </div>
-
       </div>
 
       <!-- ===================================================================== -->
@@ -799,6 +843,7 @@
     let selectedSkuHistorico = null;
     let novoMesProdutosBuffer = [];
     let histEvolucaoChartInstance = null;
+    let skuEvolucaoChartInstance = null;
 
     const NOMES_MESES_PT = {
       '01': 'Jan', '02': 'Fev', '03': 'Mar', '04': 'Abr',
@@ -1194,12 +1239,15 @@
         ? `Menor giro: ${formatMesLabel(piorMes.mes)} (${formatBRL(piorMes.faturamento)})`
         : 'Menor giro: -';
 
+      // Mapa de estoque atual (Sankhya) por código de produto
       const estoqueAtualMap = {};
       (rawProducts || []).forEach(p => {
         if (p.Código > 0) estoqueAtualMap[p.Código] = p.Estoque || 0;
       });
 
+      // Consolida Produtos no período filtrado
       const buscaTermo = (document.getElementById('histBuscaProduto').value || '').toLowerCase().trim();
+      const statusFiltro = document.getElementById('histFiltroStatusCompra').value;
       const prodMap = {};
       (historicoData.produtosMes || [])
         .filter(p => mesesAtivosSet.has(p.mes))
@@ -1231,6 +1279,14 @@
             ? Math.round((estoqueAtual / mediaQtdMes) * 30)
             : null;
 
+          let statusCode = 'SEM_ESTOQUE';
+          if (coberturaDiasHist !== null) {
+            if (estoqueAtual <= 0 || coberturaDiasHist < 15) statusCode = 'URGENTE';
+            else if (coberturaDiasHist < 35) statusCode = 'PONTO_PEDIDO';
+            else if (coberturaDiasHist > 90) statusCode = 'EXCESSO';
+            else statusCode = 'ABASTECIDO';
+          }
+
           if (coberturaDiasHist !== null && coberturaDiasHist < 30) {
             alertasCompraCount += 1;
           }
@@ -1239,11 +1295,13 @@
             ...p,
             mediaQtdMes,
             estoqueAtual,
-            coberturaDiasHist
+            coberturaDiasHist,
+            statusCode
           };
         })
         .sort((a, b) => b.faturamento - a.faturamento);
 
+      document.getElementById('tab-count-urgentes').innerText = alertasCompraCount;
       document.getElementById('hist-kpi-alertas-compra').innerText = Object.keys(estoqueAtualMap).length > 0
         ? `${alertasCompraCount} SKUs`
         : 'Suba Estoque Atual';
@@ -1251,75 +1309,80 @@
         ? 'Com cobertura histórica < 30 dias'
         : 'Carregue "Estoque & Giro Atual" para cruzar';
 
+      // Gráfico Geral na Aba 1 (Demanda & Sazonalidade)
       if (histEvolucaoChartInstance) histEvolucaoChartInstance.destroy();
       const ctxEvol = document.getElementById('histEvolucaoChart');
-      const btnReset = document.getElementById('btnResetSkuChart');
-
       if (ctxEvol && resumoFiltrado.length > 0) {
-        if (selectedSkuHistorico && prodMap[selectedSkuHistorico]) {
-          const itemSel = prodMap[selectedSkuHistorico];
-          btnReset.classList.remove('hidden');
-          document.getElementById('histChartTitle').innerText = `Sazonalidade de Consumo: ${itemSel.codigo} — ${itemSel.produto}`;
-          document.getElementById('histChartSubtitle').innerText = `Quantidade movimentada mês a mês (${itemSel.un || 'Un'}) ao longo do período selecionado`;
-
-          const porMesMap = {};
-          (historicoData.produtosMes || [])
-            .filter(p => mesesAtivosSet.has(p.mes) && (p.codigo > 0 ? `C_${p.codigo}` === selectedSkuHistorico : p.produto === selectedSkuHistorico))
-            .forEach(p => { porMesMap[p.mes] = (porMesMap[p.mes] || 0) + p.qtd; });
-
-          histEvolucaoChartInstance = new Chart(ctxEvol, {
-            type: 'bar',
-            data: {
-              labels: resumoFiltrado.map(r => formatMesLabel(r.mes)),
-              datasets: [{
-                label: `Qtd Saída (${itemSel.un || 'Un'})`,
-                data: resumoFiltrado.map(r => porMesMap[r.mes] || 0),
-                backgroundColor: '#06B6D4',
-                borderRadius: 6
-              }]
+        histEvolucaoChartInstance = new Chart(ctxEvol, {
+          type: 'bar',
+          data: {
+            labels: resumoFiltrado.map(r => formatMesLabel(r.mes)),
+            datasets: [{
+              label: 'Saída Líquida (R$)',
+              data: resumoFiltrado.map(r => r.faturamento),
+              backgroundColor: resumoFiltrado.map(r => r.fonte.toUpperCase() === 'SANKHYA' ? '#10B981' : '#6366F1'),
+              borderRadius: 6
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: { callbacks: { label: (ctx) => `Saídas: ${formatBRL(ctx.raw)}` } }
             },
-            options: {
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: { legend: { display: false } }
+            scales: {
+              y: { ticks: { callback: (v) => 'R$ ' + (v / 1000000).toFixed(1) + 'M' } }
             }
-          });
-        } else {
-          btnReset.classList.add('hidden');
-          document.getElementById('histChartTitle').innerText = 'Curva de Sazonalidade de Saídas (Histórico Consolidado)';
-          document.getElementById('histChartSubtitle').innerText = 'Clique em qualquer produto na tabela abaixo para inspecionar o histórico mensal exclusivo daquele item';
-
-          histEvolucaoChartInstance = new Chart(ctxEvol, {
-            type: 'bar',
-            data: {
-              labels: resumoFiltrado.map(r => formatMesLabel(r.mes)),
-              datasets: [{
-                label: 'Saída Líquida (R$)',
-                data: resumoFiltrado.map(r => r.faturamento),
-                backgroundColor: resumoFiltrado.map(r => r.fonte.toUpperCase() === 'SANKHYA' ? '#10B981' : '#6366F1'),
-                borderRadius: 6
-              }]
-            },
-            options: {
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: {
-                legend: { display: false },
-                tooltip: { callbacks: { label: (ctx) => `Saídas: ${formatBRL(ctx.raw)}` } }
-              },
-              scales: {
-                y: { ticks: { callback: (v) => 'R$ ' + (v / 1000000).toFixed(1) + 'M' } }
-              }
-            }
-          });
-        }
+          }
+        });
       }
 
-      const prodFiltradosTabela = prodList.filter(p =>
-        !buscaTermo ||
-        p.produto.toLowerCase().includes(buscaTermo) ||
-        String(p.codigo).includes(buscaTermo)
-      );
+      // Gráfico de Inspeção do SKU na Aba Planejamento de Compras
+      if (skuEvolucaoChartInstance) skuEvolucaoChartInstance.destroy();
+      const skuPanel = document.getElementById('skuSazonalidadePanel');
+      const ctxSku = document.getElementById('skuEvolucaoChart');
+
+      if (selectedSkuHistorico && prodMap[selectedSkuHistorico] && ctxSku) {
+        const itemSel = prodMap[selectedSkuHistorico];
+        skuPanel.classList.remove('hidden');
+        document.getElementById('skuChartTitle').innerText = `${itemSel.codigo} — ${itemSel.produto}`;
+        document.getElementById('skuChartSubtitle').innerText = `Quantidade movimentada mês a mês (${itemSel.un || 'Un'}) ao longo do período selecionado`;
+
+        const porMesMap = {};
+        (historicoData.produtosMes || [])
+          .filter(p => mesesAtivosSet.has(p.mes) && (p.codigo > 0 ? `C_${p.codigo}` === selectedSkuHistorico : p.produto === selectedSkuHistorico))
+          .forEach(p => { porMesMap[p.mes] = (porMesMap[p.mes] || 0) + p.qtd; });
+
+        skuEvolucaoChartInstance = new Chart(ctxSku, {
+          type: 'bar',
+          data: {
+            labels: resumoFiltrado.map(r => formatMesLabel(r.mes)),
+            datasets: [{
+              label: `Qtd Saída (${itemSel.un || 'Un'})`,
+              data: resumoFiltrado.map(r => porMesMap[r.mes] || 0),
+              backgroundColor: '#06B6D4',
+              borderRadius: 6
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } }
+          }
+        });
+      } else if (skuPanel) {
+        skuPanel.classList.add('hidden');
+      }
+
+      // Filtra e renderiza Tabela de Planejamento de Compras
+      const prodFiltradosTabela = prodList.filter(p => {
+        const matchBusca = !buscaTermo ||
+          p.produto.toLowerCase().includes(buscaTermo) ||
+          String(p.codigo).includes(buscaTermo);
+        const matchStatus = statusFiltro === 'ALL' || p.statusCode === statusFiltro;
+        return matchBusca && matchStatus;
+      });
 
       const prodBody = document.getElementById('histProdutosBody');
       if (prodFiltradosTabela.length > 0) {
@@ -1327,16 +1390,14 @@
           const isSelected = selectedSkuHistorico === p.key;
           let statusBadge = '<span class="bg-slate-500/15 text-slate-300 border border-slate-500/30 px-2 py-0.5 rounded text-[10px]">Sem Estoque Carregado</span>';
 
-          if (p.coberturaDiasHist !== null) {
-            if (p.estoqueAtual <= 0 || p.coberturaDiasHist < 15) {
-              statusBadge = '<span class="bg-rose-500/20 text-rose-300 border border-rose-500/40 px-2 py-0.5 rounded text-[10px] font-bold">COMPRAR URGENTE</span>';
-            } else if (p.coberturaDiasHist < 35) {
-              statusBadge = '<span class="bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded text-[10px] font-bold">PONTO DE PEDIDO</span>';
-            } else if (p.coberturaDiasHist > 90) {
-              statusBadge = '<span class="bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 px-2 py-0.5 rounded text-[10px] font-semibold">EXCESSO (SUSPENDER)</span>';
-            } else {
-              statusBadge = '<span class="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded text-[10px] font-semibold">ABASTECIDO</span>';
-            }
+          if (p.statusCode === 'URGENTE') {
+            statusBadge = '<span class="bg-rose-500/20 text-rose-300 border border-rose-500/40 px-2 py-0.5 rounded text-[10px] font-bold">COMPRAR URGENTE</span>';
+          } else if (p.statusCode === 'PONTO_PEDIDO') {
+            statusBadge = '<span class="bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded text-[10px] font-bold">PONTO DE PEDIDO</span>';
+          } else if (p.statusCode === 'EXCESSO') {
+            statusBadge = '<span class="bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 px-2 py-0.5 rounded text-[10px] font-semibold">EXCESSO (SUSPENDER)</span>';
+          } else if (p.statusCode === 'ABASTECIDO') {
+            statusBadge = '<span class="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded text-[10px] font-semibold">ABASTECIDO</span>';
           }
 
           return `
@@ -1354,6 +1415,8 @@
             </tr>
           `;
         }).join('');
+      } else {
+        prodBody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-brand-muted">Nenhum produto encontrado para o filtro selecionado.</td></tr>';
       }
     }
 
@@ -1538,7 +1601,7 @@
       if (targetTab) targetTab.classList.add('active');
 
       const sections = [
-        'historico-consolidado', 'visao-geral', 'estoque-parado',
+        'historico-consolidado', 'planejamento-compras', 'visao-geral', 'estoque-parado',
         'curva-lucratividade', 'menos-vendidos', 'tabela-produtos', 'insights'
       ];
       sections.forEach(s => {
@@ -1785,7 +1848,7 @@
         }
 
         allUploadedProducts = listaFinal;
-        switchTab('visao-geral');
+        switchTab('planejamento-compras');
         aplicarFiltrosBase(true, true);
       } catch (err) {
         console.error('Erro na leitura das planilhas:', err);
