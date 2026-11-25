@@ -99,7 +99,7 @@
 
         <div class="flex flex-wrap items-center gap-2 w-full xl:w-auto justify-end">
           <!-- BOTÃO CARREGAR PLANILHAS OPERAÇÃO ATUAL -->
-          <label class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-1.5 rounded-lg font-bold cursor-pointer transition flex items-center gap-1.5 shadow-lg" title="Carrega planilhas de Estoque Disponível (Galpão/Acessórios) e Saídas do período atual">
+          <label class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-1.5 rounded-lg font-bold cursor-pointer transition flex items-center gap-1.5 shadow-lg" title="Carrega planilhas de Estoque Disponível (Galpão/Acessórios/Matéria-Prima) e Saídas do período atual">
             <i class="fa-solid fa-file-excel text-sm"></i> 
             <span>Estoque & Giro Atual</span>
             <input type="file" id="excelFileInput" accept=".xlsx, .xls, .csv, .xml" multiple class="hidden" onchange="handleFileUpload(event)">
@@ -486,15 +486,38 @@
 
         <!-- TABELA CENTRAL DE COMPRAS & REPOSIÇÃO (HISTÓRICO X ESTOQUE ATUAL) -->
         <div class="glass-panel rounded-2xl p-5 border-l-4 border-emerald-500">
-          <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-4">
+          <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-3 mb-4">
             <div>
               <h3 class="font-bold text-white text-base flex items-center gap-2">
                 <i class="fa-solid fa-clipboard-list text-emerald-400"></i> Planejamento de Compras — Giro Histórico × Estoque Disponível
               </h3>
-              <p class="text-xs text-brand-muted">Clique na linha de um produto para ver sua curva mensal de consumo no gráfico.</p>
+              <p class="text-xs text-brand-muted" id="subtituloPlanejamentoCompras">
+                Exibindo <b>Material para Revenda</b> (Galpão e Acessórios). Colunas 8/10mm e Telas (fabricação própria) são excluídas automaticamente.
+              </p>
             </div>
 
             <div class="flex flex-wrap items-center gap-2.5">
+              <!-- SELETOR: MATERIAL PARA REVENDA vs MATÉRIA-PRIMA -->
+              <div class="inline-flex rounded-lg bg-brand-bg p-1 border border-brand-border">
+                <button
+                  type="button"
+                  id="btnCategoriaRevenda"
+                  onclick="setCategoriaPlanejamento('REVENDA')"
+                  class="px-3 py-1 rounded-md text-xs font-bold bg-emerald-600 text-white shadow transition flex items-center gap-1.5"
+                >
+                  <i class="fa-solid fa-store"></i> Material para Revenda
+                </button>
+                <button
+                  type="button"
+                  id="btnCategoriaMateriaPrima"
+                  onclick="setCategoriaPlanejamento('MATERIA_PRIMA')"
+                  class="px-3 py-1 rounded-md text-xs font-semibold text-brand-muted hover:text-white transition flex items-center gap-1.5"
+                  title="Vergalhões (2108, 2110, 2111) e Fios Máquina (2014, 2015, 2016)"
+                >
+                  <i class="fa-solid fa-industry"></i> Matéria-Prima (6 SKUs)
+                </button>
+              </div>
+
               <!-- FILTRO POR STATUS DE COMPRA DINÂMICO -->
               <select id="histFiltroStatusCompra" onchange="renderHistoricoView()" class="bg-brand-bg border border-brand-border text-white text-xs font-semibold rounded-lg px-3 py-1.5 focus:outline-none focus:border-cyan-400 cursor-pointer">
                 <option value="ALL">Todos os Status</option>
@@ -505,7 +528,7 @@
               </select>
 
               <!-- CAMPO DE BUSCA -->
-              <div class="relative w-full sm:w-64">
+              <div class="relative w-full sm:w-56">
                 <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-1/2 -translate-y-1/2 text-brand-muted text-xs"></i>
                 <input 
                   type="text" 
@@ -870,7 +893,7 @@
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
             <div class="p-4 bg-brand-bg/60 rounded-xl border border-brand-border">
               <div class="text-indigo-400 font-bold mb-1">1. Ruptura Zero na Curva A</div>
-              <p class="text-brand-muted text-[11px]">Manter cobertura mínima de segurança nos grupos líderes (Colunas, Telas e Vergalhões) considerando o lead time da usina.</p>
+              <p class="text-brand-muted text-[11px]">Manter cobertura mínima de segurança nos grupos líderes e matérias-primas da fábrica considerando o lead time da usina.</p>
             </div>
             <div class="p-4 bg-brand-bg/60 rounded-xl border border-brand-border">
               <div class="text-emerald-400 font-bold mb-1">2. Compra Sazonal Antecipada</div>
@@ -973,6 +996,41 @@
     }
 
     // =========================================================================
+    // REGRAS DE NEGÓCIO: FABRICAÇÃO PRÓPRIA vs REVENDA vs MATÉRIA-PRIMA
+    // =========================================================================
+    // Códigos exclusivos de Matéria-Prima (Vergalhões e Fios Máquina da Fábrica)
+    const CODIGOS_MATERIA_PRIMA = new Set([2108, 2110, 2111, 2014, 2015, 2016]);
+
+    // Nomes padrão caso algum código de matéria-prima tenha saldo em estoque mas ainda não tenha registro no histórico de vendas
+    const CATALOGO_MATERIA_PRIMA_DEFAULT = {
+      2108: { produto: 'VERGALHÃO MATÉRIA-PRIMA (CÓD. 2108)', un: 'KG' },
+      2110: { produto: 'VERGALHÃO MATÉRIA-PRIMA (CÓD. 2110)', un: 'KG' },
+      2111: { produto: 'VERGALHÃO MATÉRIA-PRIMA (CÓD. 2111)', un: 'KG' },
+      2014: { produto: 'FIO MÁQUINA MATÉRIA-PRIMA (CÓD. 2014)', un: 'KG' },
+      2015: { produto: 'FIO MÁQUINA MATÉRIA-PRIMA (CÓD. 2015)', un: 'KG' },
+      2016: { produto: 'FIO MÁQUINA MATÉRIA-PRIMA (CÓD. 2016)', un: 'KG' }
+    };
+
+    // Identifica Colunas 8mm / 10mm (qualquer tipo) e Telas (qualquer tipo) -> Fabricação Própria
+    function isProdutoFabricacaoPropria(produto, grupo = '') {
+      const pNorm = normalizeText(produto).replace(/[,]/g, '.');
+      const gNorm = normalizeText(grupo).replace(/[,]/g, '.');
+      const combinado = `${pNorm} ${gNorm}`;
+
+      // Qualquer tipo de TELA (Tela Concreto, Tela Soldada, Tela Pop, etc.)
+      if (/\bTELAS?\b/.test(combinado)) {
+        return true;
+      }
+
+      // Qualquer tipo de COLUNA 8mm ou 10mm (ex: COLUNA 8,00MM, COLUNA 8MM, COLUNA 10,00MM, COLUNA 10MM)
+      if (/\bCOLUNAS?\b/.test(combinado) && /\b(8(\.0+)?|10(\.0+)?)\s*MM\b/.test(combinado)) {
+        return true;
+      }
+
+      return false;
+    }
+
+    // =========================================================================
     // ESTADO GLOBAL: HISTÓRICO DE DEMANDA, SAZONALIDADE & RÉGUAS DE COMPRA
     // =========================================================================
     let historicoData = {
@@ -983,6 +1041,7 @@
 
     let leadTimeDias = 15;
     let periodoEstoqueDias = 45;
+    let categoriaPlanejamentoAtiva = 'REVENDA'; // 'REVENDA' | 'MATERIA_PRIMA'
 
     let selectedSkuHistorico = null;
     let novoMesProdutosBuffer = [];
@@ -1004,6 +1063,30 @@
     function getMesCalendarioAtual() {
       const now = new Date();
       return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    }
+
+    // =========================================================================
+    // CONTROLE DO SELETOR: MATERIAL PARA REVENDA vs MATÉRIA-PRIMA
+    // =========================================================================
+    function setCategoriaPlanejamento(categoria) {
+      categoriaPlanejamentoAtiva = categoria;
+      selectedSkuHistorico = null;
+
+      const btnRevenda = document.getElementById('btnCategoriaRevenda');
+      const btnMP = document.getElementById('btnCategoriaMateriaPrima');
+      const subtitulo = document.getElementById('subtituloPlanejamentoCompras');
+
+      if (categoria === 'REVENDA') {
+        btnRevenda.className = 'px-3 py-1 rounded-md text-xs font-bold bg-emerald-600 text-white shadow transition flex items-center gap-1.5';
+        btnMP.className = 'px-3 py-1 rounded-md text-xs font-semibold text-brand-muted hover:text-white transition flex items-center gap-1.5';
+        subtitulo.innerHTML = 'Exibindo <b>Material para Revenda</b> (Galpão e Acessórios). Colunas 8/10mm e Telas (fabricação própria) são excluídas automaticamente.';
+      } else {
+        btnMP.className = 'px-3 py-1 rounded-md text-xs font-bold bg-amber-500 text-slate-950 shadow transition flex items-center gap-1.5';
+        btnRevenda.className = 'px-3 py-1 rounded-md text-xs font-semibold text-brand-muted hover:text-white transition flex items-center gap-1.5';
+        subtitulo.innerHTML = 'Exibindo exclusivamente <b>Matéria-Prima da Fábrica</b>: Vergalhões (<b>2108, 2110, 2111</b>) e Fios Máquina (<b>2014, 2015, 2016</b>).';
+      }
+
+      renderHistoricoView();
     }
 
     // =========================================================================
@@ -1202,7 +1285,7 @@
       });
 
       items.sort((a, b) => b.faturamento - a.faturamento);
-      novoMesProdutosBuffer = items.slice(0, 50);
+      novoMesProdutosBuffer = items.slice(0, 80);
 
       const totalPlanilha = items.reduce((acc, i) => acc + i.faturamento, 0);
       if (!document.getElementById('novoMesFaturamento').value && totalPlanilha > 0) {
@@ -1476,7 +1559,6 @@
       const dataFimCustom = document.getElementById('vendasDataFim').value;
       const mesCorrente = getMesCalendarioAtual();
 
-      // Se o usuário preencheu datas personalizadas nos campos em branco (De / Até)
       if (dataIniCustom || dataFimCustom) {
         const mesIni = dataIniCustom ? dataIniCustom.slice(0, 7) : '0000-00';
         const mesFim = dataFimCustom ? dataFimCustom.slice(0, 7) : '9999-99';
@@ -1504,6 +1586,133 @@
     function selecionarProdutoHistorico(skuKey) {
       selectedSkuHistorico = skuKey;
       renderHistoricoView();
+    }
+
+    // =========================================================================
+    // CONSOLIDAÇÃO DA LISTA DE PLANEJAMENTO DE COMPRAS (REVENDA vs MATÉRIA-PRIMA)
+    // =========================================================================
+    function buildPlanejamentoLista(mesesAtivosSet, qtdMeses) {
+      // Mapa de estoque atual (Galpão e Acessórios)
+      const estoqueRevendaMap = {};
+      (rawProducts || []).forEach(p => {
+        if (p.Código > 0) estoqueRevendaMap[p.Código] = p.Estoque || 0;
+      });
+
+      // Mapa completo de produtos carregados (incluindo Matéria-Prima da Fábrica)
+      const allProductsByCode = {};
+      (allUploadedProducts || []).forEach(p => {
+        if (p.Código > 0) allProductsByCode[p.Código] = p;
+      });
+
+      const excessoLimite = Math.max(90, periodoEstoqueDias + 30);
+      const prodMap = {};
+
+      (historicoData.produtosMes || [])
+        .filter(p => mesesAtivosSet.has(p.mes))
+        .forEach(p => {
+          const cod = parseInt(p.codigo) || 0;
+
+          if (categoriaPlanejamentoAtiva === 'MATERIA_PRIMA') {
+            // Somente os 6 códigos específicos de Matéria-Prima (2108, 2110, 2111, 2014, 2015, 2016)
+            if (!CODIGOS_MATERIA_PRIMA.has(cod)) return;
+          } else {
+            // Modo REVENDA:
+            // 1. Exclui qualquer Coluna 8/10mm ou Tela (Fabricação Própria)
+            if (isProdutoFabricacaoPropria(p.produto, '')) return;
+            // 2. Exclui códigos exclusivos de Matéria-Prima
+            if (CODIGOS_MATERIA_PRIMA.has(cod)) return;
+            // 3. Se o código existe na base atual e não está em Galpão/Acessórios (ex: está só em Fábrica), ignora na Revenda
+            if (cod > 0 && allProductsByCode[cod] && estoqueRevendaMap[cod] === undefined) return;
+          }
+
+          const key = cod > 0 ? `C_${cod}` : p.produto;
+          if (!prodMap[key]) {
+            prodMap[key] = {
+              key,
+              codigo: cod,
+              produto: p.produto,
+              un: p.un || (CODIGOS_MATERIA_PRIMA.has(cod) ? 'KG' : 'UN'),
+              qtdTotal: 0,
+              faturamento: 0,
+              mesesComSaida: 0
+            };
+          }
+          prodMap[key].qtdTotal += p.qtd;
+          prodMap[key].faturamento += p.faturamento;
+          prodMap[key].mesesComSaida += 1;
+        });
+
+      // No modo MATÉRIA-PRIMA, garante que todos os 6 códigos apareçam mesmo que algum ainda não tenha saída registrada no histórico
+      if (categoriaPlanejamentoAtiva === 'MATERIA_PRIMA') {
+        CODIGOS_MATERIA_PRIMA.forEach(cod => {
+          const key = `C_${cod}`;
+          if (!prodMap[key]) {
+            const infoOp = allProductsByCode[cod];
+            const infoDef = CATALOGO_MATERIA_PRIMA_DEFAULT[cod];
+            prodMap[key] = {
+              key,
+              codigo: cod,
+              produto: infoOp ? infoOp.Produto : infoDef.produto,
+              un: 'KG',
+              qtdTotal: 0,
+              faturamento: 0,
+              mesesComSaida: 0
+            };
+          }
+        });
+      }
+
+      return Object.values(prodMap)
+        .map(p => {
+          const mediaQtdMes = p.qtdTotal / qtdMeses;
+          const consumoDiario = mediaQtdMes / 30;
+
+          let hasEstoqueAtual = false;
+          let estoqueAtual = null;
+
+          if (categoriaPlanejamentoAtiva === 'MATERIA_PRIMA') {
+            if (p.codigo > 0 && allProductsByCode[p.codigo] !== undefined) {
+              hasEstoqueAtual = true;
+              estoqueAtual = allProductsByCode[p.codigo].Estoque || 0;
+            }
+          } else {
+            if (p.codigo > 0 && estoqueRevendaMap[p.codigo] !== undefined) {
+              hasEstoqueAtual = true;
+              estoqueAtual = estoqueRevendaMap[p.codigo];
+            }
+          }
+
+          const coberturaDiasHist = (hasEstoqueAtual && mediaQtdMes > 0)
+            ? Math.round((estoqueAtual / mediaQtdMes) * 30)
+            : null;
+
+          let sugestaoCompra = null;
+          if (hasEstoqueAtual && consumoDiario > 0) {
+            const estoqueIdealTotal = consumoDiario * (periodoEstoqueDias + leadTimeDias);
+            sugestaoCompra = Math.max(0, Math.ceil(estoqueIdealTotal - estoqueAtual));
+          }
+
+          let statusCode = 'SEM_ESTOQUE';
+          if (coberturaDiasHist !== null) {
+            if (estoqueAtual <= 0 || coberturaDiasHist <= leadTimeDias) statusCode = 'URGENTE';
+            else if (coberturaDiasHist <= periodoEstoqueDias) statusCode = 'PONTO_PEDIDO';
+            else if (coberturaDiasHist > excessoLimite) statusCode = 'EXCESSO';
+            else statusCode = 'ABASTECIDO';
+          }
+
+          return {
+            ...p,
+            mediaQtdMes,
+            estoqueAtual,
+            coberturaDiasHist,
+            sugestaoCompra,
+            statusCode
+          };
+        })
+        .sort((a, b) => {
+          if (b.faturamento !== a.faturamento) return b.faturamento - a.faturamento;
+          return a.codigo - b.codigo;
+        });
     }
 
     function renderHistoricoView() {
@@ -1540,84 +1749,19 @@
         ? `Menor giro: ${formatMesLabel(piorMes.mes)} (${formatBRL(piorMes.faturamento)})`
         : 'Menor giro: -';
 
-      // Mapa de estoque atual (Sankhya) por código de produto
-      const estoqueAtualMap = {};
-      (rawProducts || []).forEach(p => {
-        if (p.Código > 0) estoqueAtualMap[p.Código] = p.Estoque || 0;
-      });
+      const prodList = buildPlanejamentoLista(mesesAtivosSet, qtdMeses);
+      const prodMapByKey = {};
+      prodList.forEach(p => { prodMapByKey[p.key] = p; });
 
-      const excessoLimite = Math.max(90, periodoEstoqueDias + 30);
-
-      // Consolida Produtos no período filtrado
-      const buscaTermo = (document.getElementById('histBuscaProduto').value || '').toLowerCase().trim();
-      const statusFiltro = document.getElementById('histFiltroStatusCompra').value;
-      const prodMap = {};
-      (historicoData.produtosMes || [])
-        .filter(p => mesesAtivosSet.has(p.mes))
-        .forEach(p => {
-          const key = p.codigo > 0 ? `C_${p.codigo}` : p.produto;
-          if (!prodMap[key]) {
-            prodMap[key] = {
-              key,
-              codigo: p.codigo,
-              produto: p.produto,
-              un: p.un,
-              qtdTotal: 0,
-              faturamento: 0,
-              mesesComSaida: 0
-            };
-          }
-          prodMap[key].qtdTotal += p.qtd;
-          prodMap[key].faturamento += p.faturamento;
-          prodMap[key].mesesComSaida += 1;
-        });
-
-      let alertasCompraCount = 0;
-      const prodList = Object.values(prodMap)
-        .map(p => {
-          const mediaQtdMes = p.qtdTotal / qtdMeses;
-          const consumoDiario = mediaQtdMes / 30;
-          const hasEstoqueAtual = p.codigo > 0 && estoqueAtualMap[p.codigo] !== undefined;
-          const estoqueAtual = hasEstoqueAtual ? estoqueAtualMap[p.codigo] : null;
-          const coberturaDiasHist = (hasEstoqueAtual && mediaQtdMes > 0)
-            ? Math.round((estoqueAtual / mediaQtdMes) * 30)
-            : null;
-
-          let sugestaoCompra = null;
-          if (hasEstoqueAtual && consumoDiario > 0) {
-            const estoqueIdealTotal = consumoDiario * (periodoEstoqueDias + leadTimeDias);
-            sugestaoCompra = Math.max(0, Math.ceil(estoqueIdealTotal - estoqueAtual));
-          }
-
-          let statusCode = 'SEM_ESTOQUE';
-          if (coberturaDiasHist !== null) {
-            if (estoqueAtual <= 0 || coberturaDiasHist <= leadTimeDias) statusCode = 'URGENTE';
-            else if (coberturaDiasHist <= periodoEstoqueDias) statusCode = 'PONTO_PEDIDO';
-            else if (coberturaDiasHist > excessoLimite) statusCode = 'EXCESSO';
-            else statusCode = 'ABASTECIDO';
-          }
-
-          if (statusCode === 'URGENTE' || statusCode === 'PONTO_PEDIDO') {
-            alertasCompraCount += 1;
-          }
-
-          return {
-            ...p,
-            mediaQtdMes,
-            estoqueAtual,
-            coberturaDiasHist,
-            sugestaoCompra,
-            statusCode
-          };
-        })
-        .sort((a, b) => b.faturamento - a.faturamento);
+      const alertasCompraCount = prodList.filter(p => p.statusCode === 'URGENTE' || p.statusCode === 'PONTO_PEDIDO').length;
+      const temEstoqueCarregado = (allUploadedProducts || []).length > 0;
 
       document.getElementById('tab-count-urgentes').innerText = alertasCompraCount;
-      document.getElementById('hist-kpi-alertas-compra').innerText = Object.keys(estoqueAtualMap).length > 0
+      document.getElementById('hist-kpi-alertas-compra').innerText = temEstoqueCarregado
         ? `${alertasCompraCount} SKUs`
         : 'Suba Estoque Atual';
-      document.getElementById('hist-kpi-alertas-sub').innerText = Object.keys(estoqueAtualMap).length > 0
-        ? `Com cobertura ≤ ${periodoEstoqueDias} dias`
+      document.getElementById('hist-kpi-alertas-sub').innerText = temEstoqueCarregado
+        ? `Com cobertura ≤ ${periodoEstoqueDias} dias (${categoriaPlanejamentoAtiva === 'REVENDA' ? 'Revenda' : 'Matéria-Prima'})`
         : 'Carregue "Estoque & Giro Atual" para cruzar';
 
       // Gráfico Geral na Aba 1 (Demanda & Sazonalidade)
@@ -1654,8 +1798,8 @@
       const skuPanel = document.getElementById('skuSazonalidadePanel');
       const ctxSku = document.getElementById('skuEvolucaoChart');
 
-      if (selectedSkuHistorico && prodMap[selectedSkuHistorico] && ctxSku) {
-        const itemSel = prodMap[selectedSkuHistorico];
+      if (selectedSkuHistorico && prodMapByKey[selectedSkuHistorico] && ctxSku) {
+        const itemSel = prodMapByKey[selectedSkuHistorico];
         skuPanel.classList.remove('hidden');
         document.getElementById('skuChartTitle').innerText = `${itemSel.codigo} — ${itemSel.produto}`;
         document.getElementById('skuChartSubtitle').innerText = `Quantidade movimentada mês a mês (${itemSel.un || 'Un'}) ao longo do período selecionado`;
@@ -1687,6 +1831,9 @@
       }
 
       // Filtra e renderiza Tabela de Planejamento de Compras
+      const buscaTermo = (document.getElementById('histBuscaProduto').value || '').toLowerCase().trim();
+      const statusFiltro = document.getElementById('histFiltroStatusCompra').value;
+
       const prodFiltradosTabela = prodList.filter(p => {
         const matchBusca = !buscaTermo ||
           p.produto.toLowerCase().includes(buscaTermo) ||
@@ -1761,45 +1908,26 @@
       })));
       XLSX.utils.book_append_sheet(wb, wsResumo, 'Giro_Mensal');
 
-      const estoqueAtualMap = {};
-      (rawProducts || []).forEach(p => { if (p.Código > 0) estoqueAtualMap[p.Código] = p.Estoque || 0; });
-
-      const prodMap = {};
-      (historicoData.produtosMes || []).filter(p => mesesSet.has(p.mes)).forEach(p => {
-        const key = p.codigo > 0 ? `C_${p.codigo}` : p.produto;
-        if (!prodMap[key]) prodMap[key] = { codigo: p.codigo, produto: p.produto, un: p.un, qtd: 0, faturamento: 0 };
-        prodMap[key].qtd += p.qtd;
-        prodMap[key].faturamento += p.faturamento;
-      });
+      const prodList = buildPlanejamentoLista(mesesSet, qtdMeses);
+      const nomeAba = categoriaPlanejamentoAtiva === 'REVENDA' ? 'Compras_Revenda' : 'Compras_Materia_Prima';
 
       const wsCompras = XLSX.utils.json_to_sheet(
-        Object.values(prodMap)
-          .sort((a, b) => b.faturamento - a.faturamento)
-          .map((p, i) => {
-            const mediaMes = p.qtd / qtdMeses;
-            const consumoDiario = mediaMes / 30;
-            const hasEst = p.codigo > 0 && estoqueAtualMap[p.codigo] !== undefined;
-            const est = hasEst ? estoqueAtualMap[p.codigo] : '';
-            const cobDias = (hasEst && mediaMes > 0) ? Math.round((est / mediaMes) * 30) : '';
-            const sugCompra = (hasEst && consumoDiario > 0)
-              ? Math.max(0, Math.ceil((consumoDiario * (periodoEstoqueDias + leadTimeDias)) - est))
-              : '';
-            return {
-              'Posição': i + 1,
-              'Código': p.codigo || '',
-              'Produto': p.produto,
-              'Unidade': p.un,
-              [`Saída Total (${qtdMeses}m)`]: Number(p.qtd.toFixed(2)),
-              'Média Mensal': Number(mediaMes.toFixed(2)),
-              'Estoque Atual': est,
-              'Cobertura Estimada (Dias)': cobDias,
-              [`Sugestão Compra (LT ${leadTimeDias}d + Alvo ${periodoEstoqueDias}d)`]: sugCompra
-            };
-          })
+        prodList.map((p, i) => ({
+          'Posição': i + 1,
+          'Categoria': categoriaPlanejamentoAtiva === 'REVENDA' ? 'Material para Revenda' : 'Matéria-Prima',
+          'Código': p.codigo || '',
+          'Produto': p.produto,
+          'Unidade': p.un,
+          [`Saída Total (${qtdMeses}m)`]: Number(p.qtdTotal.toFixed(2)),
+          'Média Mensal': Number(p.mediaQtdMes.toFixed(2)),
+          'Estoque Atual': p.estoqueAtual !== null ? p.estoqueAtual : '',
+          'Cobertura Estimada (Dias)': p.coberturaDiasHist !== null ? p.coberturaDiasHist : '',
+          [`Sugestão Compra (LT ${leadTimeDias}d + Alvo ${periodoEstoqueDias}d)`]: p.sugestaoCompra !== null ? p.sugestaoCompra : ''
+        }))
       );
-      XLSX.utils.book_append_sheet(wb, wsCompras, 'Planejamento_Compras');
+      XLSX.utils.book_append_sheet(wb, wsCompras, nomeAba);
 
-      XLSX.writeFile(wb, `Planejamento_Compras_${qtdMeses}m_LT${leadTimeDias}d_Alvo${periodoEstoqueDias}d.xlsx`);
+      XLSX.writeFile(wb, `Planejamento_${nomeAba}_${qtdMeses}m_LT${leadTimeDias}d_Alvo${periodoEstoqueDias}d.xlsx`);
     }
 
     // =========================================================================
@@ -1954,6 +2082,8 @@
 
       let parsedList = allUploadedProducts
         .filter(p => {
+          // Nas abas de Revenda/Giro Atual, exclui itens que são exclusivamente de outros locais (Matéria-Prima da Fábrica)
+          if (p.SomenteMateriaPrima) return false;
           if (!incluirSucataBobina && isSucataOuBobinaCA60(p.Grupo, p.Produto)) return false;
           const temEstoque = (p.Estoque || 0) !== 0;
           const temVendaOuDevolucao = (p.Faturamento || 0) !== 0 || (p.Quantidade || 0) !== 0 || (p['Peso (kg)'] || 0) !== 0;
@@ -2105,11 +2235,18 @@
 
               const cod = colCod !== -1 ? (parseInt(String(row[colCod]).replace(/\D/g, '')) || 0) : 0;
               const grupo = colGrupo !== -1 ? String(row[colGrupo] || 'GERAL').trim().toUpperCase() : 'GERAL';
+              const isMateriaPrima = CODIGOS_MATERIA_PRIMA.has(cod);
+              let somenteMateriaPrima = false;
 
               if (colLocal !== -1) {
                 const localNorm = normalizeText(row[colLocal]);
                 if (localNorm) {
-                  if (CODIGOS_SOMENTE_ACESSORIOS.has(cod)) {
+                  if (isMateriaPrima) {
+                    // Para Matéria-Prima (2108, 2110, 2111, 2014, 2015, 2016), aceita qualquer local (Fábrica, Matéria-Prima, Galpão, etc.)
+                    if (localNorm !== 'GALPAO' && localNorm !== 'ACESSORIOS') {
+                      somenteMateriaPrima = true;
+                    }
+                  } else if (CODIGOS_SOMENTE_ACESSORIOS.has(cod)) {
                     if (localNorm !== 'ACESSORIOS') return;
                   } else {
                     if (localNorm !== 'GALPAO' && localNorm !== 'ACESSORIOS') return;
@@ -2141,7 +2278,8 @@
                   CustoPosicao: custo,
                   CustoVenda: custoVenda || cmvUnit,
                   CMVUnit: cmvUnit || custoVenda,
-                  ValorEstoque: valEst
+                  ValorEstoque: valEst,
+                  SomenteMateriaPrima: somenteMateriaPrima
                 };
               } else {
                 const estAnterior = itemMap[key].Estoque || 0;
@@ -2150,6 +2288,10 @@
                 itemMap[key].Faturamento += fat;
                 itemMap[key].Quantidade += qtd;
                 itemMap[key]['Peso (kg)'] += peso;
+
+                if (!somenteMateriaPrima) {
+                  itemMap[key].SomenteMateriaPrima = false;
+                }
 
                 if (grupo && grupo !== 'GERAL' && itemMap[key].Grupo === 'GERAL') itemMap[key].Grupo = grupo;
                 if (custoVenda > 0) itemMap[key].CustoVenda = custoVenda;
