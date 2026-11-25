@@ -145,7 +145,7 @@
             <span class="text-[11px] font-semibold text-brand-text whitespace-nowrap">Incluir Sucata e Bobina CA 60</span>
           </label>
 
-          <!-- SELETOR DE PERÍODO -->
+          <!-- SELETOR DE PERÍODO OPERAÇÃO ATUAL -->
           <div class="flex flex-wrap items-center gap-2 bg-brand-bg/90 border border-brand-border px-2.5 py-1 rounded-lg">
             <div class="flex items-center gap-1">
               <label for="dataInicialInput" class="text-[11px] font-semibold text-amber-400">De:</label>
@@ -234,16 +234,17 @@
 
           <div class="flex flex-wrap items-center gap-2.5">
             <label class="flex items-center gap-1.5 bg-brand-bg border border-brand-border px-2.5 py-1.5 rounded-lg cursor-pointer select-none">
-              <input type="checkbox" id="histIncluirMesAberto" onchange="renderHistoricoView()" class="accent-amber-500 w-3.5 h-3.5 rounded cursor-pointer">
+              <input type="checkbox" id="histIncluirMesAberto" onchange="sincronizarFiltrosPeriodo('TAB0')" class="accent-amber-500 w-3.5 h-3.5 rounded cursor-pointer">
               <span class="text-[11px] font-semibold text-brand-muted" id="labelIncluirMesAberto">Incluir mês em andamento</span>
             </label>
 
-            <select id="histFiltroRecorte" onchange="renderHistoricoView()" class="bg-brand-bg border border-amber-500/50 text-white text-xs font-semibold rounded-lg px-3 py-1.5 focus:outline-none focus:border-amber-400 cursor-pointer">
+            <select id="histFiltroRecorte" onchange="sincronizarFiltrosPeriodo('TAB0')" class="bg-brand-bg border border-amber-500/50 text-white text-xs font-semibold rounded-lg px-3 py-1.5 focus:outline-none focus:border-amber-400 cursor-pointer">
               <option value="ALL">Todo o Histórico Fechado</option>
+              <option value="ULTIMOS_3">Últimos 3 Meses Fechados</option>
+              <option value="ULTIMOS_6">Últimos 6 Meses Fechados</option>
+              <option value="ULTIMOS_12">Últimos 12 Meses Fechados</option>
               <option value="2026">Ano 2026 (Fechados)</option>
               <option value="2025">Ano 2025 Completo (Jan – Dez/25)</option>
-              <option value="ULTIMOS_6">Últimos 6 Meses Fechados</option>
-              <option value="ULTIMOS_3">Últimos 3 Meses Fechados</option>
             </select>
 
             <select id="histFiltroMes" onchange="renderHistoricoView()" class="bg-brand-bg border border-brand-border text-brand-text text-xs rounded-lg px-3 py-1.5 focus:outline-none focus:border-indigo-500 cursor-pointer">
@@ -322,24 +323,85 @@
       </div>
 
       <!-- ===================================================================== -->
-      <!-- TAB 0.5: PLANEJAMENTO DE COMPRAS (COM RÉGUAS DE LEAD TIME & ESTOQUE)  -->
+      <!-- TAB 0.5: PLANEJAMENTO DE COMPRAS (COM PERÍODO DE VENDAS + 2 RÉGUAS)   -->
       <!-- ===================================================================== -->
       <div id="content-planejamento-compras" class="hidden space-y-6">
 
-        <!-- RÉGUAS DE PARÂMETROS DE COMPRA (LEAD TIME + PERÍODO DE ESTOQUE) -->
-        <div class="glass-panel rounded-2xl p-5 border-l-4 border-cyan-500">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+        <!-- PAINEL DE PARÂMETROS: PERÍODO BASE DE VENDAS + RÉGUAS DE LEAD TIME & ESTOQUE -->
+        <div class="glass-panel rounded-2xl p-5 border-l-4 border-cyan-500 space-y-5">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
               <h3 class="font-bold text-white text-sm flex items-center gap-2">
                 <i class="fa-solid fa-sliders text-cyan-400"></i> Parâmetros de Cálculo da Reposição
               </h3>
-              <p class="text-xs text-brand-muted">Ajuste o prazo de entrega do fornecedor e a cobertura desejada para recalcular os alertas e a sugestão de compra em tempo real.</p>
+              <p class="text-xs text-brand-muted">Escolha o período histórico de vendas para calcular a média mensal e ajuste o Lead Time e o Estoque Alvo.</p>
             </div>
             <div class="text-xs bg-brand-bg border border-brand-border px-3 py-1.5 rounded-lg text-brand-muted">
-              Ponto de Pedido: <span id="resumoParametrosRegua" class="font-bold text-white">Lead Time 15d • Estoque Alvo 45d</span>
+              Regra Ativa: <span id="resumoParametrosRegua" class="font-bold text-white">Base Completa • LT 15d • Estoque Alvo 45d</span>
             </div>
           </div>
 
+          <!-- BLOCO 0: PERÍODO BASE DE VENDAS (ATALHOS + DATAS EM BRANCO) -->
+          <div class="bg-brand-bg/90 border border-indigo-500/30 rounded-xl p-4 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+            <div class="space-y-1">
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-bold text-indigo-300 uppercase tracking-wider flex items-center gap-1.5">
+                  <i class="fa-solid fa-calendar-days text-indigo-400"></i> Período Base de Vendas (Média de Consumo)
+                </span>
+                <span id="badgePeriodoVendasAtivo" class="bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 px-2 py-0.5 rounded-full text-[11px] font-bold">
+                  Todo o Histórico Fechado
+                </span>
+              </div>
+              <p class="text-[11px] text-brand-muted">Use os atalhos rápidos (3 ou 6 meses) ou preencha as datas em branco abaixo para analisar um intervalo específico.</p>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2">
+              <!-- ATALHOS RÁPIDOS DE PERÍODO -->
+              <div class="flex flex-wrap items-center gap-1.5">
+                <button type="button" onclick="aplicarAtalhoVendas('ULTIMOS_3')" id="btnPresetVendas3M" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-brand-card hover:bg-indigo-500/20 text-brand-text hover:text-indigo-300 border border-brand-border transition">
+                  Últimos 3 Meses
+                </button>
+                <button type="button" onclick="aplicarAtalhoVendas('ULTIMOS_6')" id="btnPresetVendas6M" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-brand-card hover:bg-indigo-500/20 text-brand-text hover:text-indigo-300 border border-brand-border transition">
+                  Últimos 6 Meses
+                </button>
+                <button type="button" onclick="aplicarAtalhoVendas('ULTIMOS_12')" id="btnPresetVendas12M" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-brand-card hover:bg-indigo-500/20 text-brand-text hover:text-indigo-300 border border-brand-border transition">
+                  Últimos 12 Meses
+                </button>
+                <button type="button" onclick="aplicarAtalhoVendas('ALL')" id="btnPresetVendasALL" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 text-white border border-indigo-500 transition">
+                  Tudo
+                </button>
+              </div>
+
+              <!-- CAMPOS EM BRANCO DE DATA PERSONALIZADA -->
+              <div class="flex flex-wrap items-center gap-2 bg-[#0B0F17] border border-brand-border px-3 py-1.5 rounded-lg">
+                <div class="flex items-center gap-1.5">
+                  <label for="vendasDataInicio" class="text-[11px] font-semibold text-brand-muted">De:</label>
+                  <input 
+                    type="date" 
+                    id="vendasDataInicio" 
+                    onchange="aplicarDatasPersonalizadasVendas()"
+                    class="bg-transparent text-white font-semibold text-xs focus:outline-none border-b border-indigo-500/40"
+                    title="Data inicial das vendas (deixe em branco para usar o início do histórico)"
+                  >
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <label for="vendasDataFim" class="text-[11px] font-semibold text-brand-muted">Até:</label>
+                  <input 
+                    type="date" 
+                    id="vendasDataFim" 
+                    onchange="aplicarDatasPersonalizadasVendas()"
+                    class="bg-transparent text-white font-semibold text-xs focus:outline-none border-b border-indigo-500/40"
+                    title="Data final das vendas (deixe em branco para usar o último mês)"
+                  >
+                </div>
+                <button type="button" onclick="limparDatasPersonalizadasVendas()" id="btnLimparDatasVendas" class="hidden text-[11px] text-rose-400 hover:text-rose-300 font-semibold ml-1" title="Limpar datas em branco">
+                  <i class="fa-solid fa-xmark"></i> Limpar
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- BLOCO 1 E 2: RÉGUAS DE LEAD TIME E PERÍODO DE ESTOQUE -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
             <!-- RÉGUA 1: LEAD TIME DO FORNECEDOR -->
             <div class="bg-brand-bg/80 border border-brand-border rounded-xl p-4 space-y-3">
@@ -945,6 +1007,76 @@
     }
 
     // =========================================================================
+    // CONTROLE DO PERÍODO BASE DE VENDAS (ATALHOS + DATAS EM BRANCO)
+    // =========================================================================
+    function atualizarVisualBotoesVendas(recorteAtivo, temDataCustom) {
+      const botoes = {
+        'ULTIMOS_3': document.getElementById('btnPresetVendas3M'),
+        'ULTIMOS_6': document.getElementById('btnPresetVendas6M'),
+        'ULTIMOS_12': document.getElementById('btnPresetVendas12M'),
+        'ALL': document.getElementById('btnPresetVendasALL')
+      };
+
+      const baseClass = 'px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-brand-card hover:bg-indigo-500/20 text-brand-text hover:text-indigo-300 border border-brand-border transition';
+      const activeClass = 'px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 text-white border border-indigo-500 transition shadow';
+
+      Object.entries(botoes).forEach(([key, btn]) => {
+        if (!btn) return;
+        btn.className = (!temDataCustom && recorteAtivo === key) ? activeClass : baseClass;
+      });
+    }
+
+    function aplicarAtalhoVendas(recorte) {
+      document.getElementById('vendasDataInicio').value = '';
+      document.getElementById('vendasDataFim').value = '';
+      document.getElementById('btnLimparDatasVendas').classList.add('hidden');
+      document.getElementById('histFiltroRecorte').value = recorte;
+      document.getElementById('histFiltroMes').value = 'ALL';
+
+      atualizarVisualBotoesVendas(recorte, false);
+      atualizarResumoTextoRegua();
+      renderHistoricoView();
+    }
+
+    function aplicarDatasPersonalizadasVendas() {
+      const ini = document.getElementById('vendasDataInicio').value;
+      const fim = document.getElementById('vendasDataFim').value;
+      const btnLimpar = document.getElementById('btnLimparDatasVendas');
+
+      if (ini || fim) {
+        btnLimpar.classList.remove('hidden');
+        document.getElementById('histFiltroMes').value = 'ALL';
+        atualizarVisualBotoesVendas('', true);
+      } else {
+        btnLimpar.classList.add('hidden');
+        atualizarVisualBotoesVendas(document.getElementById('histFiltroRecorte').value, false);
+      }
+
+      atualizarResumoTextoRegua();
+      renderHistoricoView();
+    }
+
+    function limparDatasPersonalizadasVendas() {
+      document.getElementById('vendasDataInicio').value = '';
+      document.getElementById('vendasDataFim').value = '';
+      document.getElementById('btnLimparDatasVendas').classList.add('hidden');
+      atualizarVisualBotoesVendas(document.getElementById('histFiltroRecorte').value, false);
+      atualizarResumoTextoRegua();
+      renderHistoricoView();
+    }
+
+    function sincronizarFiltrosPeriodo(origem) {
+      if (origem === 'TAB0') {
+        document.getElementById('vendasDataInicio').value = '';
+        document.getElementById('vendasDataFim').value = '';
+        document.getElementById('btnLimparDatasVendas').classList.add('hidden');
+        atualizarVisualBotoesVendas(document.getElementById('histFiltroRecorte').value, false);
+      }
+      atualizarResumoTextoRegua();
+      renderHistoricoView();
+    }
+
+    // =========================================================================
     // RÉGUAS DE LEAD TIME & PERÍODO DE ESTOQUE
     // =========================================================================
     function setLeadTimePreset(dias) {
@@ -959,6 +1091,37 @@
       atualizarParametrosCompra();
     }
 
+    function atualizarResumoTextoRegua(qtdMesesConsiderados = null) {
+      const ini = document.getElementById('vendasDataInicio').value;
+      const fim = document.getElementById('vendasDataFim').value;
+      const recorte = document.getElementById('histFiltroRecorte').value;
+      const labelPE = periodoEstoqueDias >= 90 ? `${periodoEstoqueDias}+ dias` : `${periodoEstoqueDias} dias`;
+
+      let textoPeriodo = 'Base Completa';
+      if (ini || fim) {
+        const iniFmt = ini ? formatMesLabel(ini.slice(0, 7)) : 'Início';
+        const fimFmt = fim ? formatMesLabel(fim.slice(0, 7)) : 'Atual';
+        textoPeriodo = `${iniFmt} a ${fimFmt}`;
+      } else if (recorte === 'ULTIMOS_3') {
+        textoPeriodo = 'Últimos 3 Meses';
+      } else if (recorte === 'ULTIMOS_6') {
+        textoPeriodo = 'Últimos 6 Meses';
+      } else if (recorte === 'ULTIMOS_12') {
+        textoPeriodo = 'Últimos 12 Meses';
+      } else if (recorte === '2026') {
+        textoPeriodo = 'Ano 2026';
+      } else if (recorte === '2025') {
+        textoPeriodo = 'Ano 2025';
+      }
+
+      const sufixoMeses = qtdMesesConsiderados !== null
+        ? ` (${qtdMesesConsiderados} ${qtdMesesConsiderados === 1 ? 'mês' : 'meses'})`
+        : '';
+
+      document.getElementById('badgePeriodoVendasAtivo').innerText = `${textoPeriodo}${sufixoMeses}`;
+      document.getElementById('resumoParametrosRegua').innerText = `${textoPeriodo} • LT ${leadTimeDias}d • Estoque Alvo ${labelPE}`;
+    }
+
     function atualizarParametrosCompra() {
       const sliderLT = document.getElementById('sliderLeadTime');
       const sliderPE = document.getElementById('sliderPeriodoEstoque');
@@ -966,7 +1129,6 @@
       leadTimeDias = parseInt(sliderLT ? sliderLT.value : 15) || 15;
       periodoEstoqueDias = parseInt(sliderPE ? sliderPE.value : 45) || 45;
 
-      // Garante que o Período de Estoque Alvo nunca seja menor que o Lead Time + 5 dias
       if (periodoEstoqueDias <= leadTimeDias) {
         periodoEstoqueDias = leadTimeDias + 5;
         if (sliderPE) sliderPE.value = periodoEstoqueDias;
@@ -979,14 +1141,13 @@
       document.getElementById('badgePeriodoEstoqueVal').innerText = labelPE;
       document.getElementById('lblLeadTimeInfo').innerText = `${leadTimeDias} dias`;
       document.getElementById('lblEstoqueAlvoInfo').innerText = labelPE;
-      document.getElementById('resumoParametrosRegua').innerText = `Lead Time ${leadTimeDias}d • Estoque Alvo ${labelPE}`;
 
-      // Atualiza os textos das opções do filtro de status
       document.getElementById('optStatusUrgente').innerText = `Comprar Urgente (≤ ${leadTimeDias} dias)`;
       document.getElementById('optStatusPontoPedido').innerText = `Ponto de Pedido (${leadTimeDias + 1} a ${periodoEstoqueDias} dias)`;
       document.getElementById('optStatusAbastecido').innerText = `Abastecido (${periodoEstoqueDias + 1} a ${excessoLimite} dias)`;
       document.getElementById('optStatusExcesso').innerText = `Excesso / Suspender (> ${excessoLimite} dias)`;
 
+      atualizarResumoTextoRegua();
       renderHistoricoView();
     }
 
@@ -1311,7 +1472,16 @@
       const incluirMesAberto = document.getElementById('histIncluirMesAberto').checked;
       const recorte = document.getElementById('histFiltroRecorte').value;
       const mesEspecifico = document.getElementById('histFiltroMes').value;
+      const dataIniCustom = document.getElementById('vendasDataInicio').value;
+      const dataFimCustom = document.getElementById('vendasDataFim').value;
       const mesCorrente = getMesCalendarioAtual();
+
+      // Se o usuário preencheu datas personalizadas nos campos em branco (De / Até)
+      if (dataIniCustom || dataFimCustom) {
+        const mesIni = dataIniCustom ? dataIniCustom.slice(0, 7) : '0000-00';
+        const mesFim = dataFimCustom ? dataFimCustom.slice(0, 7) : '9999-99';
+        return (historicoData.resumo || []).filter(r => r.mes >= mesIni && r.mes <= mesFim);
+      }
 
       let base = (historicoData.resumo || []).filter(r => {
         if (!incluirMesAberto && r.mes === mesCorrente) return false;
@@ -1320,6 +1490,7 @@
 
       if (recorte === '2026') base = base.filter(r => r.mes.startsWith('2026-'));
       else if (recorte === '2025') base = base.filter(r => r.mes.startsWith('2025-'));
+      else if (recorte === 'ULTIMOS_12') base = base.slice(-12);
       else if (recorte === 'ULTIMOS_6') base = base.slice(-6);
       else if (recorte === 'ULTIMOS_3') base = base.slice(-3);
 
@@ -1345,6 +1516,8 @@
       const resumoFiltrado = getMesesFiltradosHistorico();
       const mesesAtivosSet = new Set(resumoFiltrado.map(r => r.mes));
       const qtdMeses = resumoFiltrado.length || 1;
+
+      atualizarResumoTextoRegua(resumoFiltrado.length);
 
       const totalFat = resumoFiltrado.reduce((acc, r) => acc + r.faturamento, 0);
       const totalVendas = resumoFiltrado.reduce((acc, r) => acc + r.vendas, 0);
@@ -1410,7 +1583,6 @@
             ? Math.round((estoqueAtual / mediaQtdMes) * 30)
             : null;
 
-          // Quantidade sugerida para cobrir Período de Estoque Alvo + Lead Time descontando o saldo atual
           let sugestaoCompra = null;
           if (hasEstoqueAtual && consumoDiario > 0) {
             const estoqueIdealTotal = consumoDiario * (periodoEstoqueDias + leadTimeDias);
@@ -1566,7 +1738,7 @@
           `;
         }).join('');
       } else {
-        prodBody.innerHTML = '<tr><td colspan="9" class="text-center py-8 text-brand-muted">Nenhum produto encontrado para o filtro selecionado.</td></tr>';
+        prodBody.innerHTML = '<tr><td colspan="9" class="text-center py-8 text-brand-muted">Nenhum produto encontrado para o período ou filtro selecionado.</td></tr>';
       }
     }
 
@@ -1617,7 +1789,7 @@
               'Código': p.codigo || '',
               'Produto': p.produto,
               'Unidade': p.un,
-              'Saída Total Período': Number(p.qtd.toFixed(2)),
+              [`Saída Total (${qtdMeses}m)`]: Number(p.qtd.toFixed(2)),
               'Média Mensal': Number(mediaMes.toFixed(2)),
               'Estoque Atual': est,
               'Cobertura Estimada (Dias)': cobDias,
@@ -1627,7 +1799,7 @@
       );
       XLSX.utils.book_append_sheet(wb, wsCompras, 'Planejamento_Compras');
 
-      XLSX.writeFile(wb, `Planejamento_Compras_LT${leadTimeDias}d_Alvo${periodoEstoqueDias}d.xlsx`);
+      XLSX.writeFile(wb, `Planejamento_Compras_${qtdMeses}m_LT${leadTimeDias}d_Alvo${periodoEstoqueDias}d.xlsx`);
     }
 
     // =========================================================================
