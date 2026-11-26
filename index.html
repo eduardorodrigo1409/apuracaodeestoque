@@ -1604,6 +1604,20 @@
         if (p.Código > 0) allProductsByCode[p.Código] = p;
       });
 
+      // Meses realmente presentes no histórico para o recorte ativo
+      const mesesPresentesHistorico = new Set(
+        (historicoData.produtosMes || [])
+          .map(p => String(p.mes || '').trim())
+          .filter(m => mesesAtivosSet.has(m))
+      );
+
+      // Meses presentes especificamente para Matéria-Prima dentro do recorte ativo
+      const mesesPresentesMP = new Set(
+        (historicoData.produtosMes || [])
+          .filter(p => mesesAtivosSet.has(String(p.mes || '').trim()) && CODIGOS_MATERIA_PRIMA.has(parseInt(p.codigo) || 0))
+          .map(p => String(p.mes || '').trim())
+      );
+
       const excessoLimite = Math.max(90, periodoEstoqueDias + 30);
       const prodMap = {};
 
@@ -1662,9 +1676,20 @@
         });
       }
 
+      const divisorDinamicoMP = mesesPresentesMP.size > 0
+        ? mesesPresentesMP.size
+        : (mesesPresentesHistorico.size > 0 ? mesesPresentesHistorico.size : qtdMeses);
+
+      const divisorDinamicoRevenda = mesesPresentesHistorico.size > 0
+        ? mesesPresentesHistorico.size
+        : qtdMeses;
+
       return Object.values(prodMap)
         .map(p => {
-          const mediaQtdMes = p.qtdTotal / qtdMeses;
+          const divisorItem = categoriaPlanejamentoAtiva === 'MATERIA_PRIMA'
+            ? divisorDinamicoMP
+            : divisorDinamicoRevenda;
+          const mediaQtdMes = divisorItem > 0 ? (p.qtdTotal / divisorItem) : 0;
           const consumoDiario = mediaQtdMes / 30;
 
           let hasEstoqueAtual = false;
@@ -1724,7 +1749,12 @@
 
       const resumoFiltrado = getMesesFiltradosHistorico();
       const mesesAtivosSet = new Set(resumoFiltrado.map(r => r.mes));
-      const qtdMeses = resumoFiltrado.length || 1;
+      const mesesReaisProdutos = new Set(
+        (historicoData.produtosMes || [])
+          .filter(p => mesesAtivosSet.has(String(p.mes || '').trim()))
+          .map(p => String(p.mes || '').trim())
+      );
+      const qtdMeses = resumoFiltrado.length > 0 ? resumoFiltrado.length : (mesesReaisProdutos.size || 1);
 
       atualizarResumoTextoRegua(resumoFiltrado.length);
 
