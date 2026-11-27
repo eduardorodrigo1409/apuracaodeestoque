@@ -2801,12 +2801,32 @@
       }));
     }
 
-    function enviarParaSimuladorOfertas() {
-      const base = currentDisplayedProducts.length > 0 ? currentDisplayedProducts : activeFilteredProducts;
-      if (!base || base.length === 0) {
-        alert("Carregue as planilhas antes de enviar para o Simulador de Ofertas.");
-        return;
-      }
+    function isItemExcessoOuSemGiro(item) {
+  const temEstoque = (item.Estoque || 0) > 0;
+  if (!temEstoque) return false;
+
+  const semSaida = (item.Faturamento || 0) <= 0;
+  const coberturaElevada = (item.DiasCobertura || 0) > 90 || item.DiasCobertura === 999;
+
+  return semSaida || coberturaElevada;
+}
+
+function enviarParaSimuladorOfertas() {
+  const base = currentDisplayedProducts.length > 0 ? currentDisplayedProducts : activeFilteredProducts;
+  if (!base || base.length === 0) {
+    alert("Carregue as planilhas antes de enviar para o Simulador de Ofertas.");
+    return;
+  }
+
+  const itensExcesso = base.filter(isItemExcessoOuSemGiro);
+  if (itensExcesso.length === 0) {
+    alert("Nenhum item em excesso ou sem giro encontrado no filtro atual.");
+    return;
+  }
+
+  salvarBaseParaSimulador(itensExcesso);
+  window.open(URL_SIMULADOR_OFERTAS, '_blank');
+}
       const itensDisponiveis = base.filter(item => (item.Estoque || 0) > 0);
       if (itensDisponiveis.length === 0) {
         alert("Nenhum dos itens filtrados possui Qtd Disponível maior que zero.");
