@@ -2827,16 +2827,7 @@ function enviarParaSimuladorOfertas() {
   salvarBaseParaSimulador(itensExcesso);
   window.open(URL_SIMULADOR_OFERTAS, '_blank');
 }
-      const itensDisponiveis = base.filter(item => (item.Estoque || 0) > 0);
-      if (itensDisponiveis.length === 0) {
-        alert("Nenhum dos itens filtrados possui Qtd Disponível maior que zero.");
-        return;
-      }
-      salvarBaseParaSimulador(itensDisponiveis);
-      window.open(URL_SIMULADOR_OFERTAS, '_blank');
-    }
-
-    function generateGroupsFromProducts(products, totalGlobal) {
+     function generateGroupsFromProducts(products, totalGlobal) {
       const groupsMap = {};
       products.forEach(p => {
         const gName = p.Grupo || 'OUTROS';
